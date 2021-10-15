@@ -8,11 +8,11 @@ class G4Box;
 class G4LogicalVolume;
 class G4VPhysicalVolume;
 
-class DetectorConstruction:public G4VUserDetectorConstruction
+class Foil: public G4VUserDetectorConstruction
 {
     public:
-        DetectorConstruction();
-        virtual ~DetectorConstruction();
+        Foil() {};
+        virtual ~Foil() {};
 
         virtual G4VPhysicalVolume * Construct();
     private:

@@ -19,6 +19,7 @@ configure_file(tools/setup.sh.in setup.sh @ONLY)
 
 # add the executable
 add_executable(run_beam src/run_beam.cxx
-	src/Foil.cxx)
+	src/Foil.cxx
+	src/Beam.cxx)
 target_link_libraries(run_beam ${Geant4_LIBRARIES})
 
