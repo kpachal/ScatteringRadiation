@@ -1,1 +1,3 @@
 cmake -DGeant4_DIR=$G4DIR ..
+
+Test test
