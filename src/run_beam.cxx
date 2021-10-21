@@ -5,7 +5,7 @@
 #include <string>
 
 // My includes
-#include "ScatteringRadiation/Foil.h"
+#include "ScatteringRadiation/Construction.h"
 #include "ScatteringRadiation/Beam.h"
 #include "ScatteringRadiation/Action.h"
 
@@ -24,18 +24,14 @@ int main(int argc, char* argv[])
 	G4RunManager * runManager = new G4RunManager;
 
 	// Detector construction
-	runManager->SetUserInitialization(new Foil());  
+	runManager->SetUserInitialization(new Construction());  
 
   // Physics list
   G4VModularPhysicsList* physicsList = new FTFP_BERT;
   runManager->SetUserInitialization(physicsList);
 
-  // From tutorial
+  // From This includes setting up the beamline
   runManager->SetUserInitialization(new Action()); 
-
-  // Primary generator action
-  // Moving inside action class
-  //runManager->SetUserAction(new Beam());
 
   // Initialize G4 kernel
 	runManager->Initialize();
@@ -56,7 +52,7 @@ int main(int argc, char* argv[])
   uiManager->ApplyCommand("/vis/scene/endOfEventAction accumulate");
 
   ui->SessionStart();
-  // End of user interface setup  
+  // End of user interface setup
 
   //Cause the run manager to generate a single event using the
 	//primary generator action registered above.

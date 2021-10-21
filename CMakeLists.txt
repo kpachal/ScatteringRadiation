@@ -19,8 +19,9 @@ configure_file(tools/setup.sh.in setup.sh @ONLY)
 
 # add the executable
 add_executable(run_beam src/run_beam.cxx
-	src/Foil.cxx
+	src/Construction.cxx
 	src/Beam.cxx
-	src/Action.cxx)
+	src/Action.cxx
+	src/SensitiveSurface.cxx)
 target_link_libraries(run_beam ${Geant4_LIBRARIES})
 
