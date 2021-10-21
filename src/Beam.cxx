@@ -1,6 +1,6 @@
 #include "ScatteringRadiation/Beam.h"
 #include "G4ParticleGun.hh"
-#include "G4Proton.hh"
+#include "G4Electron.hh"
 
 Beam::Beam() {
 
@@ -16,11 +16,11 @@ Beam::~Beam(){
 void Beam::GeneratePrimaries(G4Event* anEvent){
 	
 	//Specify particle to be emitted
-	myGun->SetParticleDefinition(G4Proton::ProtonDefinition());
+	myGun->SetParticleDefinition(G4Electron::ElectronDefinition());
 	
 	//Set particle  kinetic energy and direction of travel
-	myGun->SetParticlePosition(G4ThreeVector(0,0,0));
-	myGun->SetParticleEnergy(50.*CLHEP::GeV); 
+	myGun->SetParticlePosition(G4ThreeVector(0,0,-1.0));
+	myGun->SetParticleEnergy(31.*CLHEP::MeV); 
 	myGun->SetParticleMomentumDirection(G4ThreeVector(0,0,1.0));
 
 	//Generate one instance of specified particle

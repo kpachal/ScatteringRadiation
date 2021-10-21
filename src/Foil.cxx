@@ -14,9 +14,9 @@ G4VPhysicalVolume * Foil::Construct()
 	G4Material* air = nist->FindOrBuildMaterial("G4_AIR");
 
 	//Define the world solid. The world will be 20m x 20m x20m
-	G4double world_sizeX=10*CLHEP::m;
-	G4double world_sizeY=10*CLHEP::m;
-	G4double world_sizeZ=10*CLHEP::m;
+	G4double world_sizeX=2*CLHEP::m;
+	G4double world_sizeY=2*CLHEP::m;
+	G4double world_sizeZ=2*CLHEP::m;
 	G4Box* solidWorld = 
 		new G4Box("World",world_sizeX,world_sizeY,world_sizeZ);
 
@@ -37,15 +37,15 @@ G4VPhysicalVolume * Foil::Construct()
 							true);			       //overlaps checking                     
 
 	//Create  the shape of a target to fire particles at
-	G4double target_sizeX=1*CLHEP::m;
-	G4double target_sizeY=1*CLHEP::m;
-	G4double target_sizeZ=1*CLHEP::m;
+	G4double target_sizeX=2.5*CLHEP::cm;
+	G4double target_sizeY=2.5*CLHEP::cm;
+	G4double target_sizeZ=1*CLHEP::micrometer;
 	G4Box* solidTarget = 
 		new G4Box("Target",target_sizeX, target_sizeY, target_sizeZ);
 
 	//Create the target logical volume by
 	//assigning the material of the target to be Pb
-	/*G4LogicalVolume* logicTarget = 
+	G4LogicalVolume* logicTarget = 
 		new G4LogicalVolume(solidTarget, Pb, "myTarget");
 
 	//Create the target physical volume by placing it in the
@@ -59,6 +59,6 @@ G4VPhysicalVolume * Foil::Construct()
 							false,                 //no boolean operation
 							0,                     //copy number
 							true);			       //overlaps checking                     
-*/
+
 	return physWorld;
 }
