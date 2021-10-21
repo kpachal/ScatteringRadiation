@@ -19,7 +19,7 @@ void Beam::GeneratePrimaries(G4Event* anEvent){
 	myGun->SetParticleDefinition(G4Electron::ElectronDefinition());
 	
 	//Set particle  kinetic energy and direction of travel
-	myGun->SetParticlePosition(G4ThreeVector(0,0,-1.0));
+	myGun->SetParticlePosition(G4ThreeVector(0,0,-1.0*CLHEP::m));
 	myGun->SetParticleEnergy(31.*CLHEP::MeV); 
 	myGun->SetParticleMomentumDirection(G4ThreeVector(0,0,1.0));
 

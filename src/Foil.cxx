@@ -12,6 +12,7 @@ G4VPhysicalVolume * Foil::Construct()
 	//Build materials for world and target
 	G4Material* Pb =  nist->FindOrBuildMaterial("G4_Pb");
 	G4Material* air = nist->FindOrBuildMaterial("G4_AIR");
+	G4Material* Ta = nist->FindOrBuildMaterial("G4_Ta");
 
 	//Define the world solid. The world will be 20m x 20m x20m
 	G4double world_sizeX=2*CLHEP::m;
@@ -45,8 +46,10 @@ G4VPhysicalVolume * Foil::Construct()
 
 	//Create the target logical volume by
 	//assigning the material of the target to be Pb
+//	G4LogicalVolume* logicTarget = 
+//		new G4LogicalVolume(solidTarget, Pb, "myTarget");
 	G4LogicalVolume* logicTarget = 
-		new G4LogicalVolume(solidTarget, Pb, "myTarget");
+		new G4LogicalVolume(solidTarget, Ta, "myTarget");
 
 	//Create the target physical volume by placing it in the
 	//"logicWorld" logical volume.
