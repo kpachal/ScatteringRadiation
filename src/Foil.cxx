@@ -10,8 +10,8 @@ G4VPhysicalVolume * Foil::Construct()
 	G4NistManager* nist = G4NistManager::Instance();
 	
 	//Build materials for world and target
-	G4Material* Pb =  nist->FindOrBuildMaterial("G4_Pb");
 	G4Material* air = nist->FindOrBuildMaterial("G4_AIR");
+	G4Material* vacuum = nist->FindOrBuildMaterial("G4_Galactic");
 	G4Material* Ta = nist->FindOrBuildMaterial("G4_Ta");
 
 	//Define the world solid. The world will be 20m x 20m x20m
@@ -22,8 +22,11 @@ G4VPhysicalVolume * Foil::Construct()
 		new G4Box("World",world_sizeX,world_sizeY,world_sizeZ);
 
 	//Fill the world with air
+	//G4LogicalVolume* logicWorld = 
+	//	new G4LogicalVolume(solidWorld, air, "myWorld");
+	// Try a vacuum world instead
 	G4LogicalVolume* logicWorld = 
-		new G4LogicalVolume(solidWorld, air, "myWorld");
+		new G4LogicalVolume(solidWorld, vacuum, "myWorld");	
 
 	//Create the world physical volume. The world is the only
 	//physical volume with no mother volume.
@@ -45,9 +48,7 @@ G4VPhysicalVolume * Foil::Construct()
 		new G4Box("Target",target_sizeX, target_sizeY, target_sizeZ);
 
 	//Create the target logical volume by
-	//assigning the material of the target to be Pb
-//	G4LogicalVolume* logicTarget = 
-//		new G4LogicalVolume(solidTarget, Pb, "myTarget");
+	//assigning the material of the target to be tantalum
 	G4LogicalVolume* logicTarget = 
 		new G4LogicalVolume(solidTarget, Ta, "myTarget");
 
@@ -55,7 +56,7 @@ G4VPhysicalVolume * Foil::Construct()
 	//"logicWorld" logical volume.
 	G4VPhysicalVolume* physTarget = 
 		new G4PVPlacement(0,                       //no rotation
-							G4ThreeVector(),       //at (0,0,0)
+							G4ThreeVector(0,0,-1.0*CLHEP::m), //before center
 							logicTarget,           //its logical volume
 							"World",               //its name
 							logicWorld,             //its mother  volume
