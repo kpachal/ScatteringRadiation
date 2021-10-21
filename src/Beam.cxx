@@ -2,19 +2,27 @@
 #include "G4ParticleGun.hh"
 #include "G4Proton.hh"
 
-
-void Beam::GeneratePrimaries(G4Event* anEvent){
+Beam::Beam() {
 
 	//Create particle gun
-	G4ParticleGun* myGun = new G4ParticleGun();
+	// 1 primary vertex per event (is this where we add pileup?)
+	myGun = new G4ParticleGun(1);
+}
+
+Beam::~Beam(){
+	delete myGun;
+}
+
+void Beam::GeneratePrimaries(G4Event* anEvent){
 	
 	//Specify particle to be emitted
 	myGun->SetParticleDefinition(G4Proton::ProtonDefinition());
 	
 	//Set particle  kinetic energy and direction of travel
-	myGun->SetParticleEnergy(50.*CLHEP::keV); 
-	myGun->SetParticleMomentumDirection(G4ThreeVector(1.0,0,0));
-	
+	myGun->SetParticlePosition(G4ThreeVector(0,0,0));
+	myGun->SetParticleEnergy(50.*CLHEP::GeV); 
+	myGun->SetParticleMomentumDirection(G4ThreeVector(0,0,1.0));
+
 	//Generate one instance of specified particle
 	myGun->GeneratePrimaryVertex(anEvent);
 }

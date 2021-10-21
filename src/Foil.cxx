@@ -45,7 +45,7 @@ G4VPhysicalVolume * Foil::Construct()
 
 	//Create the target logical volume by
 	//assigning the material of the target to be Pb
-	G4LogicalVolume* logicTarget = 
+	/*G4LogicalVolume* logicTarget = 
 		new G4LogicalVolume(solidTarget, Pb, "myTarget");
 
 	//Create the target physical volume by placing it in the
@@ -59,6 +59,6 @@ G4VPhysicalVolume * Foil::Construct()
 							false,                 //no boolean operation
 							0,                     //copy number
 							true);			       //overlaps checking                     
-
+*/
 	return physWorld;
 }

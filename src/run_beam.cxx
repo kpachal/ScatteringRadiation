@@ -7,6 +7,8 @@
 // My includes
 #include "ScatteringRadiation/Foil.h"
 #include "ScatteringRadiation/Beam.h"
+#include "ScatteringRadiation/Action.h"
+
 
 // GEANT includes
 #include <FTFP_BERT.hh>
@@ -28,8 +30,12 @@ int main(int argc, char* argv[])
   G4VModularPhysicsList* physicsList = new FTFP_BERT;
   runManager->SetUserInitialization(physicsList);
 
+  // From tutorial
+  runManager->SetUserInitialization(new Action()); 
+
   // Primary generator action
-  runManager->SetUserAction(new Beam());
+  // Moving inside action class
+  //runManager->SetUserAction(new Beam());
 
   // Initialize G4 kernel
 	runManager->Initialize();
@@ -40,6 +46,14 @@ int main(int argc, char* argv[])
   visManager->Initialize();
   G4UImanager * uiManager = G4UImanager::GetUIpointer();
   
+  // Running commands to display what I'm doing
+  uiManager->ApplyCommand("/run/initialize");
+  uiManager->ApplyCommand("/vis/open OGL");
+  uiManager->ApplyCommand("/vis/viewer/set/viewpointvector 1 1 1");
+  uiManager->ApplyCommand("/vis/drawVolume");
+  uiManager->ApplyCommand("/vis/viewer/set/autorefresh true");
+  uiManager->ApplyCommand("/vis/scene/add/trajectories smooth");
+
   ui->SessionStart();
   // End of user interface setup  
 
