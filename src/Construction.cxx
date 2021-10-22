@@ -1,4 +1,5 @@
 #include "ScatteringRadiation/Construction.h"
+#include "ScatteringRadiation/SensitiveSurface.h"
 #include "G4NistManager.hh"
 #include "G4Box.hh"
 #include "G4PVPlacement.hh"
@@ -73,4 +74,10 @@ void Construction::CreateDetector() {
     physDetector = new G4PVPlacement(0, G4ThreeVector(0.*CLHEP::m, 0.*CLHEP::m, 1.95*CLHEP::m), logicDetector, "physDetector", logicWorld, false, 0, true);
 
     //physDetector = new G4PVPlacement(0, G4ThreeVector(0.*m, 0.*m, 3.*m), logicDetector, "physDetector", logicWorld, false, 1, true);	
+}
+
+void Construction::ConstructSDandField() {
+
+    SensitiveSurface * sens = new SensitiveSurface("SensitiveSurface");
+    logicDetector->SetSensitiveDetector(sens);	
 }

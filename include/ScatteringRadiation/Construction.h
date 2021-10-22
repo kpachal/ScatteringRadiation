@@ -10,12 +10,12 @@ class G4Element;
 
 class Construction: public G4VUserDetectorConstruction
 {
-    public:
+public:
         Construction() {};
         virtual ~Construction() {};
 
         virtual G4VPhysicalVolume * Construct();
-    private:
+private:
 
     void CreateDetector();
 
@@ -24,6 +24,8 @@ class Construction: public G4VUserDetectorConstruction
     G4VPhysicalVolume * physWorld, * physTarget, * physDetector;   
 
     G4Material * vacuum, * air, * tantalum; 
+    virtual void ConstructSDandField();
+
 };
 
 
