@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
 	runManager->Initialize();
 
   // Setting up the user interface to be nice.
-  G4UIExecutive * ui = new G4UIExecutive(argc, argv);
+  /*G4UIExecutive * ui = new G4UIExecutive(argc, argv);
   G4VisManager * visManager = new G4VisExecutive();
   visManager->Initialize();
   G4UImanager * uiManager = G4UImanager::GetUIpointer();
@@ -51,12 +51,12 @@ int main(int argc, char* argv[])
   uiManager->ApplyCommand("/vis/scene/add/trajectories smooth");
   uiManager->ApplyCommand("/vis/scene/endOfEventAction accumulate");
 
-  ui->SessionStart();
+  ui->SessionStart(); */
   // End of user interface setup
 
   //Cause the run manager to generate a single event using the
 	//primary generator action registered above.
-  runManager->BeamOn(1);
+  runManager->BeamOn(100000);
 
 	//After the run is complete, free up the memory used by run 
 	//manager and return 

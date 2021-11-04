@@ -22,6 +22,10 @@ add_executable(run_beam src/run_beam.cxx
 	src/Construction.cxx
 	src/Beam.cxx
 	src/Action.cxx
-	src/SensitiveSurface.cxx)
+	src/SensitiveSurface.cxx
+	src/Run.cxx
+	src/Event.cxx
+	src/Stepping.cxx)
+	
 target_link_libraries(run_beam ${Geant4_LIBRARIES})
 

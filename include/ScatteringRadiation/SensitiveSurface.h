@@ -2,6 +2,8 @@
 #define __SURFACE__
 
 #include "G4VSensitiveDetector.hh"
+#include "G4RunManager.hh"
+#include "g4root.hh"
 
 class SensitiveSurface : public G4VSensitiveDetector
 {
