@@ -40,7 +40,7 @@ G4VPhysicalVolume * Construction::Construct()
 	//Create  the shape of a target to fire particles at
 	G4double target_sizeX=2.5*CLHEP::cm;
 	G4double target_sizeY=2.5*CLHEP::cm;
-	G4double target_sizeZ=1*CLHEP::micrometer;
+	G4double target_sizeZ=10*CLHEP::micrometer;
 	solidTarget = new G4Box("Target",target_sizeX, target_sizeY, target_sizeZ);
 
 	//Create the target logical volume by

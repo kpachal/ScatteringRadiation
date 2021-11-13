@@ -2,6 +2,7 @@
 #define __STEPPING__
 
 #include "G4UserSteppingAction.hh"
+#include "G4RunManager.hh"
 #include "G4Step.hh"
 
 #include "ScatteringRadiation/Construction.h"

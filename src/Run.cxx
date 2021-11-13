@@ -9,6 +9,7 @@ RunAction::~RunAction() {
 }
 
 void RunAction::BeginOfRunAction(const G4Run*) {
+    
     G4AnalysisManager * manager = G4AnalysisManager::Instance();
     manager->OpenFile("output.root");
 
@@ -22,6 +23,12 @@ void RunAction::BeginOfRunAction(const G4Run*) {
     manager->CreateNtupleDColumn("momY"); //6
     manager->CreateNtupleDColumn("momZ"); //7
     manager->FinishNtuple(0);
+
+    manager->CreateNtuple("Processes","Processes");
+    manager->CreateNtupleIColumn("eventNumber"); //0
+    manager->CreateNtupleIColumn("processID"); //1
+    manager->CreateNtupleIColumn("outgoingParticlePDGID"); //2
+    manager->FinishNtuple(1);
 
 }
 

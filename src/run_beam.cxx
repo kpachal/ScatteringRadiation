@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 
   //Cause the run manager to generate a single event using the
 	//primary generator action registered above.
-  runManager->BeamOn(100000);
+  runManager->BeamOn(10000000);
 
 	//After the run is complete, free up the memory used by run 
 	//manager and return 
