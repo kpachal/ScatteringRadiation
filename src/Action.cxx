@@ -8,10 +8,13 @@ SetUserAction(beam);
 RunAction * doOnRun = new RunAction();
 SetUserAction(doOnRun);
 
-EventAction * doOnEvent = new EventAction();
+EventAction * doOnEvent = new EventAction(doOnRun);
 SetUserAction(doOnEvent);
 
-SteppingAction * doOnStep = new SteppingAction();
+TrackingAction * doOnTrack = new TrackingAction(doOnEvent);
+SetUserAction(doOnTrack);
+
+SteppingAction * doOnStep = new SteppingAction(doOnEvent);
 SetUserAction(doOnStep);
 
 }

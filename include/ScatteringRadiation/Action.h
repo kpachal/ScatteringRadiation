@@ -7,6 +7,7 @@
 #include "ScatteringRadiation/Event.h"
 #include "ScatteringRadiation/Stepping.h"
 #include "ScatteringRadiation/Run.h"
+#include "ScatteringRadiation/Track.h"
 
 class Action : public G4VUserActionInitialization {
 

@@ -12,6 +12,7 @@
 
 // GEANT includes
 #include <FTFP_BERT.hh>
+#include <QBBC.hh>
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
 #include "G4VisManager.hh"
@@ -20,6 +21,15 @@
 
 int main(int argc, char* argv[])
 {
+
+  // Parse run parameters.
+  int nEvents = 10000;
+  if (argc > 1) {
+      // Command line argument should be how many events to run
+      nEvents = std::stoi(argv[1]);
+      std::cout << "You requested setting nEvents to " << nEvents << std::endl;
+  }
+
 	//Get instance of runmanager
 	G4RunManager * runManager = new G4RunManager;
 
@@ -27,7 +37,7 @@ int main(int argc, char* argv[])
 	runManager->SetUserInitialization(new Construction());  
 
   // Physics list
-  G4VModularPhysicsList* physicsList = new FTFP_BERT;
+  G4VModularPhysicsList* physicsList = new QBBC;
   runManager->SetUserInitialization(physicsList);
 
   // From This includes setting up the beamline
@@ -56,7 +66,7 @@ int main(int argc, char* argv[])
 
   //Cause the run manager to generate a single event using the
 	//primary generator action registered above.
-  runManager->BeamOn(10000000);
+  runManager->BeamOn(nEvents);
 
 	//After the run is complete, free up the memory used by run 
 	//manager and return 

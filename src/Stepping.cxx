@@ -6,8 +6,8 @@
 
 //#include "G4RunManager.hh"
 
-SteppingAction::SteppingAction() {
-
+SteppingAction::SteppingAction(EventAction *eventAction) {
+    m_EventAction = eventAction;
 }
 
 SteppingAction::~SteppingAction() {
@@ -22,9 +22,10 @@ void SteppingAction::UserSteppingAction(const G4Step* aStep) {
    
     // Pre step process isn't defined when electron enters. So just look at post.
     auto postPointProcess = postPoint->GetProcessDefinedStep()->GetProcessName();
-    auto postPointProcessID = postPoint->GetProcessDefinedStep()->GetProcessType();
+    auto postPointProcessType = postPoint->GetProcessDefinedStep()->GetProcessType();
+    auto postPointProcessSubType = postPoint->GetProcessDefinedStep()->GetProcessSubType();
 
-    //if (postPointProcessID != 1) G4cout << "Step process: " << postPointProcess << ", " << postPointProcessID << G4endl;
+    //if (postPointProcessType != 1) G4cout << "Step process: " << postPointProcess << ", " << postPointProcessType << ", " << postPointProcessSubType <<  G4endl;
 
     // Save processes from this step into ntuple for this event.
     // Check event number
@@ -32,8 +33,12 @@ void SteppingAction::UserSteppingAction(const G4Step* aStep) {
     int pdgID = aStep->GetTrack()->GetParticleDefinition()->GetPDGEncoding();   
     G4AnalysisManager * manager = G4AnalysisManager::Instance();
     manager->FillNtupleIColumn(1, 0, evt);
-    manager->FillNtupleIColumn(1, 1, postPointProcessID);
-    manager->FillNtupleIColumn(1, 2, pdgID);
+    manager->FillNtupleIColumn(1, 1, postPointProcessType);
+    manager->FillNtupleIColumn(1, 2, postPointProcessSubType);
+    manager->FillNtupleIColumn(1, 3, pdgID);
     manager->AddNtupleRow(1);
+
+    // Fill process info into the event information
+    m_EventAction->FillProcessInfo(postPointProcessType, postPointProcessSubType);
 
 }

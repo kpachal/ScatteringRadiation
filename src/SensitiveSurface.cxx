@@ -70,4 +70,5 @@ G4bool SensitiveSurface::ProcessHits(G4Step *aStep, G4TouchableHistory *ROhist)
     manager->FillNtupleDColumn(0, 7, momParticle[2]);
     manager->AddNtupleRow(0);
 
+    // Additionally, write to event info
 }

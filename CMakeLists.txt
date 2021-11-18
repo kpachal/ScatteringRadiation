@@ -5,6 +5,7 @@ project(ScatteringRadiation)
 
 # Include Geant4
 find_package(Geant4 REQUIRED ui_all vis_all)
+find_package(ROOT REQUIRED)
 #find_package(geant4 REQUIRED)
 
 # Set it up
@@ -12,7 +13,8 @@ include(${Geant4_USE_FILE})
 
 # Include my headers dir
 include_directories(include
-	${Geant4_INCLUDE_DIR})
+	${Geant4_INCLUDE_DIR}
+	${ROOT_INCLUDE_DIRS})
 
 # Make me a setup script directly in the build directory
 configure_file(tools/setup.sh.in setup.sh @ONLY)
@@ -25,7 +27,8 @@ add_executable(run_beam src/run_beam.cxx
 	src/SensitiveSurface.cxx
 	src/Run.cxx
 	src/Event.cxx
-	src/Stepping.cxx)
+	src/Stepping.cxx
+	src/Track.cxx)
 	
-target_link_libraries(run_beam ${Geant4_LIBRARIES})
+target_link_libraries(run_beam ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
 
