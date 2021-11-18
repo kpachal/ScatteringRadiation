@@ -48,7 +48,7 @@ void EventAction::EndOfEventAction(const G4Event*) {
     int nFinalState = m_pdgIDFinal.size();
 
     // Print to check set correctly
-    std::cout << evt << std::endl;
+/*    std::cout << evt << std::endl;
     std::cout << nFinalState << std::endl;    
     for (auto i: m_pdgIDFinal) std::cout << i << ' '; std::cout << std::endl;
     for (auto i: m_processType) std::cout << i << ' '; std::cout << std::endl;
@@ -58,7 +58,7 @@ void EventAction::EndOfEventAction(const G4Event*) {
     for (auto i: m_posZ) std::cout << i << ' '; std::cout << std::endl;
     for (auto i: m_momX) std::cout << i << ' '; std::cout << std::endl;
     for (auto i: m_momY) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_momZ) std::cout << i << ' '; std::cout << std::endl;
+    for (auto i: m_momZ) std::cout << i << ' '; std::cout << std::endl; */
 
     m_RunAction->FillEventInfo(evt, nFinalState, &m_pdgIDFinal, 
                                &m_processType, &m_processSubType,
