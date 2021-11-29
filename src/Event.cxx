@@ -19,6 +19,7 @@ void EventAction::BeginOfEventAction(const G4Event*) {
     m_momX.clear();
     m_momY.clear();
     m_momZ.clear();
+    m_mass.clear();
 }
 
 void EventAction::FillProcessInfo(int processType, int processSubType) {
@@ -28,7 +29,7 @@ void EventAction::FillProcessInfo(int processType, int processSubType) {
 
 void EventAction::FillTrackInfo(int pdgID, 
                               double posX, double posY, double posZ, 
-                              double momX, double momY, double momZ) 
+                              double momX, double momY, double momZ, double mass) 
 {
    m_pdgIDFinal.push_back(pdgID);
    m_posX.push_back(posX);
@@ -37,6 +38,8 @@ void EventAction::FillTrackInfo(int pdgID,
    m_momX.push_back(momX);
    m_momY.push_back(momY);
    m_momZ.push_back(momZ);
+   m_mass.push_back(mass);
+   
 }
 
 void EventAction::EndOfEventAction(const G4Event*) {
@@ -48,21 +51,9 @@ void EventAction::EndOfEventAction(const G4Event*) {
     int nFinalState = m_pdgIDFinal.size();
 
     // Print to check set correctly
-/*    std::cout << evt << std::endl;
-    std::cout << nFinalState << std::endl;    
-    for (auto i: m_pdgIDFinal) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_processType) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_processSubType) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_posX) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_posY) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_posZ) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_momX) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_momY) std::cout << i << ' '; std::cout << std::endl;
-    for (auto i: m_momZ) std::cout << i << ' '; std::cout << std::endl; */
-
     m_RunAction->FillEventInfo(evt, nFinalState, &m_pdgIDFinal, 
                                &m_processType, &m_processSubType,
                                &m_posX, &m_posY, &m_posZ,
-                               &m_momX, &m_momY, &m_momZ);
+                               &m_momX, &m_momY, &m_momZ, &m_mass);
 
 }

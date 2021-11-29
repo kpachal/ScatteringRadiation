@@ -27,17 +27,6 @@ void SteppingAction::UserSteppingAction(const G4Step* aStep) {
 
     //if (postPointProcessType != 1) G4cout << "Step process: " << postPointProcess << ", " << postPointProcessType << ", " << postPointProcessSubType <<  G4endl;
 
-    // Save processes from this step into ntuple for this event.
-    // Check event number
-    G4int evt = G4RunManager::GetRunManager()->GetCurrentEvent()->GetEventID(); 
-    int pdgID = aStep->GetTrack()->GetParticleDefinition()->GetPDGEncoding();   
-    G4AnalysisManager * manager = G4AnalysisManager::Instance();
-    manager->FillNtupleIColumn(1, 0, evt);
-    manager->FillNtupleIColumn(1, 1, postPointProcessType);
-    manager->FillNtupleIColumn(1, 2, postPointProcessSubType);
-    manager->FillNtupleIColumn(1, 3, pdgID);
-    manager->AddNtupleRow(1);
-
     // Fill process info into the event information
     m_EventAction->FillProcessInfo(postPointProcessType, postPointProcessSubType);
 

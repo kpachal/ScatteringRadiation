@@ -19,7 +19,7 @@ class EventAction : public G4UserEventAction {
 
     void FillProcessInfo(int processType, int processSubType);
     void FillTrackInfo(int pdgID, double posX, double posY, double posZ, 
-                              double momX, double momY, double momZ);
+                              double momX, double momY, double momZ, double mass);
   private :
 
     RunAction * m_RunAction;
@@ -34,6 +34,7 @@ class EventAction : public G4UserEventAction {
     std::vector<double> m_momX;   ///< x momentum of each particle as it leaves sensitive volume (could switch to tracking action)
     std::vector<double> m_momY;   ///< y momentum of each particle as it leaves sensitive volume
     std::vector<double> m_momZ;   ///< z momentum of each particle as it leaves sensitive volume
+    std::vector<double> m_mass;   ///< particle mass
 
 };
 
