@@ -3,6 +3,7 @@
 #include <list>
 #include <algorithm>
 #include <math.h>
+#include <regex>
 
 #include <TH1I.h>
 #include <TROOT.h>
@@ -25,21 +26,36 @@ std::map<std::string,int> particle_types = { {"eplus",-11} ,{"eminus", 11}, {"ga
 
 using namespace ROOT; // RDataFrame's namespace
 
-std::vector<TLorentzVector> build_particles(int desiredPDGID, std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> mass, std::vector<int> pdgIDs) {
-    std::vector<TLorentzVector> particles;
+struct particle {
+    TLorentzVector four_vector;
+    TVector3 position_vector;
+    int pdgID;
+};
+
+std::vector<particle> build_particles(int desiredPDGID, std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<double> mass, std::vector<int> pdgIDs) {
+    std::vector<particle> particles;
     for (int i=0; i<px.size(); i++) {
+        // Skip if wrong pdgID
         if (pdgIDs.at(i) != desiredPDGID) continue;
+        particle newparticle;
         TLorentzVector p4;
         p4.SetXYZM(px.at(i),py.at(i),pz.at(i),mass.at(i));
-        particles.push_back(p4);
+        // Skip if magnitude of momentum is identically zero - somehow these are sneaking in. 
+        // TODO understand why they are here....
+        if (p4.P() == 0) continue;
+        newparticle.four_vector = p4;
+        TVector3 pos;
+        pos.SetXYZ(x.at(i),y.at(i),z.at(i));
+        newparticle.position_vector = pos;
+        newparticle.pdgID = pdgIDs.at(i);
+        particles.push_back(newparticle);
     }
     return particles;
 }
 
 int main(int argc, char* argv[]) {
 
-    std::string input_filename = "output_byevent.root";
-    std::string output_filename = "results.root";
+    std::string input_filename = "output.root";
     std::string tree_name = "Events";
     int ip=1;
     while (ip<argc) {
@@ -77,6 +93,8 @@ int main(int argc, char* argv[]) {
       exit(1);
     }
 
+    std::string output_filename = std::regex_replace(input_filename, std::regex("output"),"results");
+
     std::cout << "Running over file: " << input_filename << std::endl;
     std::vector<std::string> files_to_use = {input_filename};
 
@@ -110,9 +128,7 @@ int main(int argc, char* argv[]) {
         {
             // Here we dictate which process to count an event as being in the case that
             // there are a bunch of different processes that occur.
-
-            // Define order of importance: 1 = most important
-            int dominantType = 1091;
+            int dominantType = 0;
             for (auto type : fullType) {
                 // Decreasing order of interestingness
                 if (type > 4999) {
@@ -130,16 +146,10 @@ int main(int argc, char* argv[]) {
                 } else if (type == 2012) {
                     dominantType = type;
                     break;
-                } else if (type == 2004) {
-                    dominantType = type;
-                    break;
                 } else if (type == 2003) {
                     dominantType = type;
                     break;
                 } else if (type == 2002) {
-                    dominantType = type;
-                    break;
-                } else if (type == 2001) {
                     dominantType = type;
                     break;
                 } else if (type == 2011) {
@@ -163,21 +173,21 @@ int main(int argc, char* argv[]) {
     // Make final state particles and sort by type.
     // Having 3-vectors will allow us to determine angles
     int PDGid_eplus = particle_types["eplus"];
-    auto withEplus = with_dominant.Define("eplus",[PDGid_eplus](std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> mass, std::vector<int> pdgIDs)
-        {   return build_particles(PDGid_eplus, px, py, pz, mass, pdgIDs); },
-    {"momX", "momY", "momZ", "mass", "pdgIDFinal"});
+    auto withEplus = with_dominant.Define("eplus",[PDGid_eplus](std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<double> mass, std::vector<int> pdgIDs)
+        {   return build_particles(PDGid_eplus, px, py, pz, x, y, z, mass, pdgIDs); },
+    {"momX", "momY", "momZ", "posX", "posY", "posZ", "mass", "pdgIDFinal"});
     int PDGid_eminus = particle_types["eminus"];
-    auto withEminus = withEplus.Define("eminus",[PDGid_eminus](std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> mass, std::vector<int> pdgIDs)
-        {   return build_particles(PDGid_eminus, px, py, pz, mass, pdgIDs); },
-    {"momX", "momY", "momZ", "mass", "pdgIDFinal"});
+    auto withEminus = withEplus.Define("eminus",[PDGid_eminus](std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<double> mass, std::vector<int> pdgIDs)
+        {   return build_particles(PDGid_eminus, px, py, pz, x, y, z, mass, pdgIDs); },
+    {"momX", "momY", "momZ", "posX", "posY", "posZ", "mass", "pdgIDFinal"});
     int PDGid_gamma = particle_types["gamma"];
-     auto withGamma = withEminus.Define("gamma",[PDGid_gamma](std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> mass, std::vector<int> pdgIDs)
-        {   return build_particles(PDGid_gamma, px, py, pz, mass, pdgIDs); },
-    {"momX", "momY", "momZ", "mass", "pdgIDFinal"});
+     auto withGamma = withEminus.Define("gamma",[PDGid_gamma](std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<double> mass, std::vector<int> pdgIDs)
+        {   return build_particles(PDGid_gamma, px, py, pz, x, y, z, mass, pdgIDs); },
+    {"momX", "momY", "momZ", "posX", "posY", "posZ", "mass", "pdgIDFinal"});
     int PDGid_neutron = particle_types["neutron"];
-    auto final_frame = withGamma.Define("neutron",[PDGid_neutron](std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> mass, std::vector<int> pdgIDs)
-        {   return build_particles(PDGid_neutron, px, py, pz, mass, pdgIDs); },
-    {"momX", "momY", "momZ", "mass", "pdgIDFinal"});
+    auto final_frame = withGamma.Define("neutron",[PDGid_neutron](std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<double> mass, std::vector<int> pdgIDs)
+        {   return build_particles(PDGid_neutron, px, py, pz, x, y, z, mass, pdgIDs); },
+    {"momX", "momY", "momZ", "posX", "posY", "posZ", "mass", "pdgIDFinal"});
 
     // Assess full set of processes present
     auto setOfAllProcesses = final_frame.Reduce([](std::vector<int> processes_c1, std::vector<int> processes_c2) 
@@ -201,6 +211,7 @@ int main(int argc, char* argv[]) {
 
     // Save histograms to evaluate at the end
     std::vector<ROOT::RDF::RResultPtr<TH1D> > outputs;
+    std::vector<ROOT::RDF::RResultPtr<TH2D> > outputs_2D;
 
     // Make general histograms
     auto hist_fullTypes = final_frame.Histo1D("fullType"); outputs.push_back(hist_fullTypes);
@@ -212,37 +223,101 @@ int main(int argc, char* argv[]) {
     for (const auto& [name, pdgID] : particle_types) {
 
         // Just get events with these particles, in case I want to count them at some point
-        auto frame_theseparticles = final_frame.Filter([](std::vector<TLorentzVector> particles)
-       {return particles.size()>0; },{name});
+        //auto frame_theseparticles = final_frame.Filter([](std::vector<particle> particles)
+       //{return particles.size()>0; },{name});
 
-        auto frame_withQuantities = frame_theseparticles
+        auto frame_withQuantities = final_frame
         .Define(("energy_" + name).c_str(),
-            [](std::vector<TLorentzVector> particles)
+            [](std::vector<particle> particles)
             {   std::vector<double> energy;
-                for (auto particle : particles) energy.push_back(particle.E());
+                for (auto p : particles) energy.push_back(p.four_vector.E());
                 return energy; },{name})
         .Define(("momentum_" + name).c_str(),
-            [](std::vector<TLorentzVector> particles)
+            [](std::vector<particle> particles)
             {   std::vector<double> momentum;
-                for (auto particle : particles) momentum.push_back(particle.P());
+                for (auto p : particles) momentum.push_back(p.four_vector.P());
                 return momentum;}, {name})
+        // Angle of momentum away from initial beam direction
         .Define(("angle_" + name).c_str(),
-            [](std::vector<TLorentzVector> particles)
+            [](std::vector<particle> particles)
             {   std::vector<double> angles;
                 // Unit vector we want direction relative to
                 TVector3 beamDir(0,0,1);
-                for (auto particle : particles) {
-                    auto particleDir = particle.Vect();
+                for (auto p : particles) {
+                    auto particleDir = p.four_vector.Vect();
                     double angle = particleDir.Angle(beamDir);
+                    angles.push_back(angle);
+                }
+                return angles;}, {name})
+        // Individual momentum components
+        .Define(("momentum_x_" + name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> xpos;
+                for (auto p : particles) xpos.push_back(p.four_vector.Px());
+                return xpos;}, {name})
+        .Define(("momentum_y_" + name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> ypos;
+                for (auto p : particles) ypos.push_back(p.four_vector.Py());
+                return ypos;}, {name})
+        .Define(("momentum_z_" + name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> zpos;
+                for (auto p : particles) zpos.push_back(p.four_vector.Pz());
+                return zpos;}, {name})
+        // Individual position components
+        .Define(("position_x_" + name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> xpos;
+                for (auto p : particles) xpos.push_back(p.position_vector.X());
+                return xpos;}, {name})
+        .Define(("position_y_" + name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> ypos;
+                for (auto p : particles) ypos.push_back(p.position_vector.Y());
+                return ypos;}, {name})
+        .Define(("position_z_" + name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> zpos;
+                for (auto p : particles) zpos.push_back(p.position_vector.Z());
+                return zpos;}, {name})
+        // Angle from beam direction based on physical location
+        .Define(("angle_pos_" + name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> angles;
+                // Unit vector we want direction relative to
+                TVector3 beamDir(0,0,1);
+                for (auto p : particles) {
+                    double angle = p.position_vector.Angle(beamDir);
                     angles.push_back(angle);
                 }
                 return angles;}, {name});
 
         // Now make histograms from each.
-        auto particle_energy = frame_withQuantities.Histo1D({("energy_" + name).c_str(),("energy_" + name).c_str(),70,0,35},("energy_" + name).c_str());
+        auto particle_energy = frame_withQuantities.Histo1D({("energy_" + name).c_str(),("energy_" + name).c_str(),200,0,100},("energy_" + name).c_str());
         outputs.push_back(particle_energy);
-
-
+        auto particle_momentum = frame_withQuantities.Histo1D({("momentum_" + name).c_str(),("momentum_" + name).c_str(),400,0,100},("momentum_" + name).c_str());
+        outputs.push_back(particle_momentum); 
+        auto particle_mom_x = frame_withQuantities.Histo1D({("momentum_x_" + name).c_str(),("momentum_x_" + name).c_str(),400,-50,50},("momentum_x_" + name).c_str());      
+        outputs.push_back(particle_mom_x);
+        auto particle_mom_y = frame_withQuantities.Histo1D({("momentum_y_" + name).c_str(),("momentum_y_" + name).c_str(),400,-50,50},("momentum_y_" + name).c_str());      
+        outputs.push_back(particle_mom_y);
+        auto particle_mom_z = frame_withQuantities.Histo1D({("momentum_z_" + name).c_str(),("momentum_z_" + name).c_str(),400,-50,50},("momentum_z_" + name).c_str());      
+        outputs.push_back(particle_mom_z);
+        auto momentum_xy = frame_withQuantities.Histo2D({("momentum_xy_" + name).c_str(),("momentum_xy_" + name).c_str(),400,-50,50,400,-50,50},("momentum_x_" + name).c_str(),("momentum_y_" + name).c_str());
+        outputs_2D.push_back(momentum_xy);
+        auto particle_angle = frame_withQuantities.Histo1D({("angle_mom_" + name).c_str(),("angle_mom_" + name).c_str(),314,0,3.14},("angle_" + name).c_str());
+        outputs.push_back(particle_angle);
+        auto particle_pos_x = frame_withQuantities.Histo1D({("position_x_" + name).c_str(),("position_x_" + name).c_str(),402,-2010,2010},("position_x_" + name).c_str());      
+        outputs.push_back(particle_pos_x);
+        auto particle_pos_y = frame_withQuantities.Histo1D({("position_y_" + name).c_str(),("position_y_" + name).c_str(),402,-2010,2010},("position_y_" + name).c_str());      
+        outputs.push_back(particle_pos_y);
+        auto particle_pos_z = frame_withQuantities.Histo1D({("position_z_" + name).c_str(),("position_z_" + name).c_str(),402,-2010,2010},("position_z_" + name).c_str());      
+        outputs.push_back(particle_pos_z);
+        auto position_xy = frame_withQuantities.Histo2D({("position_xy_" + name).c_str(),("position_xy_" + name).c_str(),402,-2010,2010,402,-2010,2010},("position_x_" + name).c_str(),("position_y_" + name).c_str());
+        outputs_2D.push_back(position_xy);
+        auto particle_angle_pos = frame_withQuantities.Histo1D({("angle_pos_" + name).c_str(),("angle_pos_" + name).c_str(),314,0,3.14},("angle_pos_" + name).c_str());
+        outputs.push_back(particle_angle_pos);        
     }
 
     // Make separate plots by process
@@ -264,8 +339,10 @@ int main(int argc, char* argv[]) {
     TFile * output_file = new TFile(output_filename.c_str(),"RECREATE");
     output_file->cd();
     for (auto hist : outputs) hist.GetValue().Write();
+    for (auto hist : outputs_2D) hist.GetValue().Write();
     output_file->Close();
 
     // Make tables of data
-    //listRepresented
+    // RMS of scattering
+    //std::cout << "RMS of electron scattering is"
 }

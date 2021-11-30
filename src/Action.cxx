@@ -5,7 +5,7 @@ void Action::Build() const {
 Beam * beam = new Beam();
 SetUserAction(beam);
 
-RunAction * doOnRun = new RunAction();
+RunAction * doOnRun = new RunAction(m_outputFilename);
 SetUserAction(doOnRun);
 
 EventAction * doOnEvent = new EventAction(doOnRun);

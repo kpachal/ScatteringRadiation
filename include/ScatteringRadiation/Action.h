@@ -13,11 +13,14 @@ class Action : public G4VUserActionInitialization {
 
 public :
 
-   Action() {};
+   Action(std::string outputFilename) {m_outputFilename = outputFilename; };
    virtual ~Action() {};
 
    virtual void Build() const;
 
+private : 
+
+   std::string m_outputFilename;
 
 };
 

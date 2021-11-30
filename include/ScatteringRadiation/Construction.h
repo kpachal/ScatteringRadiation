@@ -11,7 +11,7 @@ class G4Element;
 class Construction: public G4VUserDetectorConstruction
 {
 public:
-        Construction() {};
+        Construction(double target_thickness) { m_targetThickness = target_thickness; };
         virtual ~Construction() {};
 
         virtual G4VPhysicalVolume * Construct();
@@ -25,6 +25,8 @@ private:
 
     G4Material * vacuum, * air, * tantalum; 
     virtual void ConstructSDandField();
+
+    double m_targetThickness;
 
 };
 

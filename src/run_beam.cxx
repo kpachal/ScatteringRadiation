@@ -24,24 +24,61 @@ int main(int argc, char* argv[])
 
   // Parse run parameters.
   int nEvents = 10000;
-  if (argc > 1) {
-      // Command line argument should be how many events to run
-      nEvents = std::stoi(argv[1]);
-      std::cout << "You requested setting nEvents to " << nEvents << std::endl;
-  }
+  double target_thickness = 10; // thickness of foil in microns
+  std::string output_simple = "output";
+  int ip=1;
+  while (ip<argc) {
+
+    if (std::string(argv[ip]).substr(0,2)=="--") {
+
+        // Number of events
+        if (std::string(argv[ip])=="--nEvents") {
+          if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
+            nEvents = std::stoi(argv[ip+1]);
+            ip+=2;
+          } else {std::cout<<"\nNo input file name inserted."<<std::endl; break;}
+        }
+
+        // Foil thickness
+        else if (std::string(argv[ip])=="--foilThickness") {
+          if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
+            target_thickness = std::stod(argv[ip+1]);
+            ip+=2;
+          } else {std::cout<<"\nNo tree name inserted"<<std::endl; break;}
+        }
+
+        // Output file name
+        else if (std::string(argv[ip])=="--output") {
+          if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
+            output_simple = argv[ip+1];
+            ip+=2;
+          } else {std::cout<<"\nNo tree name inserted"<<std::endl; break;}
+        }
+
+    } else { //if command does not start with "--"
+        std::cout << "\nCommand '"<<std::string(argv[ip])<<"' unknown"<<std::endl;
+        break;
+    }//end if "--"
+
+  }//end while loop
+
+  // Format output name
+  std::stringstream stream;
+  stream << output_simple << "_" << std::setprecision(2) << target_thickness << "micron_1e" << log10(nEvents) << "events.root";
+  std::string output_filename = stream.str();
 
 	//Get instance of runmanager
 	G4RunManager * runManager = new G4RunManager;
 
 	// Detector construction
-	runManager->SetUserInitialization(new Construction());  
+	runManager->SetUserInitialization(new Construction(target_thickness));  
 
   // Physics list
   G4VModularPhysicsList* physicsList = new QBBC;
   runManager->SetUserInitialization(physicsList);
 
   // From This includes setting up the beamline
-  runManager->SetUserInitialization(new Action()); 
+  runManager->SetUserInitialization(new Action(output_filename)); 
 
   // Initialize G4 kernel
 	runManager->Initialize();

@@ -1,8 +1,8 @@
 #include "ScatteringRadiation/Run.h"
 #include "TFile.h"
 
-RunAction::RunAction() {
-
+RunAction::RunAction(std::string outputFilename) {
+  m_outputFilename = outputFilename;
 }
 
 RunAction::~RunAction() {
@@ -61,7 +61,7 @@ const void RunAction::FillEventInfo(int &eventNumber,
 
 void RunAction::EndOfRunAction(const G4Run*) {
 
-    TFile outfile2("output.root","RECREATE");
+    TFile outfile2(m_outputFilename.c_str(),"RECREATE");
     outfile2.cd();
     m_customTree->Write();
     outfile2.Close();

@@ -40,7 +40,7 @@ G4VPhysicalVolume * Construction::Construct()
 	//Create  the shape of a target to fire particles at
 	G4double target_sizeX=2.5*CLHEP::cm;
 	G4double target_sizeY=2.5*CLHEP::cm;
-	G4double target_sizeZ=10*CLHEP::micrometer;
+	G4double target_sizeZ=m_targetThickness*CLHEP::micrometer;
 	solidTarget = new G4Box("Target",target_sizeX, target_sizeY, target_sizeZ);
 
 	//Create the target logical volume by
@@ -49,8 +49,8 @@ G4VPhysicalVolume * Construction::Construct()
 
 	//Create the target physical volume by placing it in the
 	//"logicWorld" logical volume.
-	physTarget = new G4PVPlacement(0,                       //no rotation
-							G4ThreeVector(0,0,-1.0*CLHEP::m), //before center
+	physTarget = new G4PVPlacement(0,              //no rotation
+							G4ThreeVector(0,0,0),  //in the center
 							logicTarget,           //its logical volume
 							"World",               //its name
 							logicWorld,             //its mother  volume

@@ -8,7 +8,7 @@
 class RunAction : public G4UserRunAction {
 
   public :
-    RunAction();
+    RunAction(std::string outputFilename);
     ~RunAction();
 
     virtual void BeginOfRunAction(const G4Run*);
@@ -44,7 +44,9 @@ class RunAction : public G4UserRunAction {
     std::vector<double> * m_momX;   ///< x momentum of each particle as it leaves sensitive volume (could switch to tracking action)
     std::vector<double> * m_momY;   ///< y momentum of each particle as it leaves sensitive volume
     std::vector<double> * m_momZ;   ///< z momentum of each particle as it leaves sensitive volume    
-    std::vector<double> * m_mass;   ///< mass of each particle    
+    std::vector<double> * m_mass;   ///< mass of each particle  
+
+    std::string m_outputFilename;  
 };
 
 #endif
