@@ -10,6 +10,7 @@
 #include <TTree.h>
 #include <TStopwatch.h>
 #include <TLorentzVector.h>
+#include <TVector2.h>
 #include <ROOT/RDataFrame.hxx>
 #include <TGraph.h>
 #include <TCanvas.h>
@@ -31,6 +32,34 @@ struct particle {
     TVector3 position_vector;
     int pdgID;
 };
+
+// Using 2.53, 2.59, 2.6 from JMFV
+double MoliereDCS(double theta, double foilThickness, double momentum, double energy) {
+
+    // Define individual input quantities
+    double density_Ta = 16.69; // units: g/cm3
+    double Aweight_Ta = 180.94788; // units: none
+    double daltons_g = 1.66053906660e-24; // units: g, converted from 1e-27kg
+    double NA = 6.02214076e23; // Avogadro's number, units: none
+    double cm3_to_fm3 = 1e39;
+    double micron_to_fm = 1e9;
+
+    // approximate path length from foil thickness and angle we end up at
+    double s = foilThickness/cos(theta); // units: microns
+    double N = (NA * density_Ta)/(cm3_to_fm3 * Aweight_Ta * daltons_g); // units: 1/fm^3
+    int Z = 73; // atomic number of tantalum
+    int Zprime = -1; // electrons have charge -e
+    double esquared = 1.4399764; // units MeV * fm
+
+    // Mid level calculations
+    double p_beta_c = momentum*momentum/energy; // beta = pc/E; p is in MeV/c and E is in MeV. Units are MeV
+
+    // Actual input variables
+    double chiC_2 = s * micron_to_fm * N * 4 * M_PI * pow(Z*Zprime*esquared,2)/pow(p_beta_c,2); // units: none
+    //double b = ;
+    //double B = ; // solve from b somehow?
+
+}
 
 std::vector<particle> build_particles(int desiredPDGID, std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<double> mass, std::vector<int> pdgIDs) {
     std::vector<particle> particles;
@@ -238,7 +267,7 @@ int main(int argc, char* argv[]) {
                 for (auto p : particles) momentum.push_back(p.four_vector.P());
                 return momentum;}, {name})
         // Angle of momentum away from initial beam direction
-        .Define(("angle_" + name).c_str(),
+        .Define(("angle_polar_" + name).c_str(),
             [](std::vector<particle> particles)
             {   std::vector<double> angles;
                 // Unit vector we want direction relative to
@@ -281,15 +310,42 @@ int main(int argc, char* argv[]) {
             {   std::vector<double> zpos;
                 for (auto p : particles) zpos.push_back(p.position_vector.Z());
                 return zpos;}, {name})
-        // Angle from beam direction based on physical location
-        .Define(("angle_pos_" + name).c_str(),
+        // Directional angles to check gaussianity: x and y separately
+        .Define(("angle_x_"+name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> angles;
+                // Unit vector we want direction relative to
+                TVector2 beamCenter(0,1);
+                for (auto p : particles) {
+                    // Project location into only x and z dimensions
+                    TVector2 particleLocation(p.position_vector.X(),p.position_vector.Z());                    
+                    double angle = beamCenter.DeltaPhi(particleLocation);
+                    angles.push_back(angle);
+                }
+                return angles;}, {name})
+        .Define(("angle_y_"+name).c_str(),
+            [](std::vector<particle> particles)
+            {   std::vector<double> angles;
+                // Unit vector we want direction relative to
+                TVector2
+                 beamCenter(0,1);
+                for (auto p : particles) {
+                    // Project location into only x and z dimensions
+                    TVector2 particleLocation(p.position_vector.Y(),p.position_vector.Z());                    
+                    double angle = beamCenter.DeltaPhi(particleLocation);
+                    angles.push_back(angle);
+                }
+                return angles;}, {name})
+        // Angle in degrees
+        .Define(("angle_polar_deg_" + name).c_str(),
             [](std::vector<particle> particles)
             {   std::vector<double> angles;
                 // Unit vector we want direction relative to
                 TVector3 beamDir(0,0,1);
                 for (auto p : particles) {
                     double angle = p.position_vector.Angle(beamDir);
-                    angles.push_back(angle);
+                    // Convert angle to degrees
+                    angles.push_back(angle*57.2958);
                 }
                 return angles;}, {name});
 
@@ -304,9 +360,9 @@ int main(int argc, char* argv[]) {
         outputs.push_back(particle_mom_y);
         auto particle_mom_z = frame_withQuantities.Histo1D({("momentum_z_" + name).c_str(),("momentum_z_" + name).c_str(),400,-50,50},("momentum_z_" + name).c_str());      
         outputs.push_back(particle_mom_z);
-        auto momentum_xy = frame_withQuantities.Histo2D({("momentum_xy_" + name).c_str(),("momentum_xy_" + name).c_str(),400,-50,50,400,-50,50},("momentum_x_" + name).c_str(),("momentum_y_" + name).c_str());
+        auto momentum_xy = frame_withQuantities.Histo2D({("momentum_xy_" + name).c_str(),("momentum_xy_" + name).c_str(),1200,-50,50,1200,-50,50},("momentum_x_" + name).c_str(),("momentum_y_" + name).c_str());
         outputs_2D.push_back(momentum_xy);
-        auto particle_angle = frame_withQuantities.Histo1D({("angle_mom_" + name).c_str(),("angle_mom_" + name).c_str(),314,0,3.14},("angle_" + name).c_str());
+        auto particle_angle = frame_withQuantities.Histo1D({("angle_polar_" + name).c_str(),("angle_polar_" + name).c_str(),314,0,3.14},("angle_polar_" + name).c_str());
         outputs.push_back(particle_angle);
         auto particle_pos_x = frame_withQuantities.Histo1D({("position_x_" + name).c_str(),("position_x_" + name).c_str(),402,-2010,2010},("position_x_" + name).c_str());      
         outputs.push_back(particle_pos_x);
@@ -314,10 +370,14 @@ int main(int argc, char* argv[]) {
         outputs.push_back(particle_pos_y);
         auto particle_pos_z = frame_withQuantities.Histo1D({("position_z_" + name).c_str(),("position_z_" + name).c_str(),402,-2010,2010},("position_z_" + name).c_str());      
         outputs.push_back(particle_pos_z);
-        auto position_xy = frame_withQuantities.Histo2D({("position_xy_" + name).c_str(),("position_xy_" + name).c_str(),402,-2010,2010,402,-2010,2010},("position_x_" + name).c_str(),("position_y_" + name).c_str());
+        auto position_xy = frame_withQuantities.Histo2D({("position_xy_" + name).c_str(),("position_xy_" + name).c_str(),1202,-2010,2010,1202,-2010,2010},("position_x_" + name).c_str(),("position_y_" + name).c_str());
         outputs_2D.push_back(position_xy);
-        auto particle_angle_pos = frame_withQuantities.Histo1D({("angle_pos_" + name).c_str(),("angle_pos_" + name).c_str(),314,0,3.14},("angle_pos_" + name).c_str());
-        outputs.push_back(particle_angle_pos);        
+        auto particle_angle_polar_deg = frame_withQuantities.Histo1D({("angle_polar_deg_" + name).c_str(),("angle_polar_deg_" + name).c_str(),314,0,3.14},("angle_polar_deg_" + name).c_str());
+        outputs.push_back(particle_angle_polar_deg);
+        auto particle_angle_x = frame_withQuantities.Histo1D({("angle_x_" + name).c_str(),("angle_x_" + name).c_str(),628,-3.14,3.14},("angle_x_" + name).c_str());
+        outputs.push_back(particle_angle_x); 
+        auto particle_angle_y = frame_withQuantities.Histo1D({("angle_y_" + name).c_str(),("angle_y_" + name).c_str(),628,-3.14,3.14},("angle_y_" + name).c_str());
+        outputs.push_back(particle_angle_y);                 
     }
 
     // Make separate plots by process

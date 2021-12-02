@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
   /*G4UIExecutive * ui = new G4UIExecutive(argc, argv);
   G4VisManager * visManager = new G4VisExecutive();
   visManager->Initialize();
-  G4UImanager * uiManager = G4UImanager::GetUIpointer();
+  G4UImanager * uiManager = G4UImanager::GetUI--finter();
   
   // Running commands to display what I'm doing
   uiManager->ApplyCommand("/run/initialize");
