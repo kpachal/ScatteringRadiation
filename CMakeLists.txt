@@ -37,6 +37,10 @@ add_executable(run_beam src/run_beam.cxx
 
 add_executable(analyze_data src/analyze_data.cxx)
 	
+add_executable(predict_distributions src/predict_distributions.cxx
+	src/Functions.cxx)
+
 target_link_libraries(run_beam ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
 target_link_libraries(analyze_data ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
+target_link_libraries(predict_distributions ${Geant4_LIBRARIES} ${ROOT_LIBRARIES})
 

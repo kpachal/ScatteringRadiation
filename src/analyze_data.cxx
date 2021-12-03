@@ -33,34 +33,6 @@ struct particle {
     int pdgID;
 };
 
-// Using 2.53, 2.59, 2.6 from JMFV
-double MoliereDCS(double theta, double foilThickness, double momentum, double energy) {
-
-    // Define individual input quantities
-    double density_Ta = 16.69; // units: g/cm3
-    double Aweight_Ta = 180.94788; // units: none
-    double daltons_g = 1.66053906660e-24; // units: g, converted from 1e-27kg
-    double NA = 6.02214076e23; // Avogadro's number, units: none
-    double cm3_to_fm3 = 1e39;
-    double micron_to_fm = 1e9;
-
-    // approximate path length from foil thickness and angle we end up at
-    double s = foilThickness/cos(theta); // units: microns
-    double N = (NA * density_Ta)/(cm3_to_fm3 * Aweight_Ta * daltons_g); // units: 1/fm^3
-    int Z = 73; // atomic number of tantalum
-    int Zprime = -1; // electrons have charge -e
-    double esquared = 1.4399764; // units MeV * fm
-
-    // Mid level calculations
-    double p_beta_c = momentum*momentum/energy; // beta = pc/E; p is in MeV/c and E is in MeV. Units are MeV
-
-    // Actual input variables
-    double chiC_2 = s * micron_to_fm * N * 4 * M_PI * pow(Z*Zprime*esquared,2)/pow(p_beta_c,2); // units: none
-    //double b = ;
-    //double B = ; // solve from b somehow?
-
-}
-
 std::vector<particle> build_particles(int desiredPDGID, std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<double> mass, std::vector<int> pdgIDs) {
     std::vector<particle> particles;
     for (int i=0; i<px.size(); i++) {
@@ -372,7 +344,7 @@ int main(int argc, char* argv[]) {
         outputs.push_back(particle_pos_z);
         auto position_xy = frame_withQuantities.Histo2D({("position_xy_" + name).c_str(),("position_xy_" + name).c_str(),1202,-2010,2010,1202,-2010,2010},("position_x_" + name).c_str(),("position_y_" + name).c_str());
         outputs_2D.push_back(position_xy);
-        auto particle_angle_polar_deg = frame_withQuantities.Histo1D({("angle_polar_deg_" + name).c_str(),("angle_polar_deg_" + name).c_str(),314,0,3.14},("angle_polar_deg_" + name).c_str());
+        auto particle_angle_polar_deg = frame_withQuantities.Histo1D({("angle_polar_deg_" + name).c_str(),("angle_polar_deg_" + name).c_str(),180,0,180},("angle_polar_deg_" + name).c_str());
         outputs.push_back(particle_angle_polar_deg);
         auto particle_angle_x = frame_withQuantities.Histo1D({("angle_x_" + name).c_str(),("angle_x_" + name).c_str(),628,-3.14,3.14},("angle_x_" + name).c_str());
         outputs.push_back(particle_angle_x); 
@@ -402,7 +374,4 @@ int main(int argc, char* argv[]) {
     for (auto hist : outputs_2D) hist.GetValue().Write();
     output_file->Close();
 
-    // Make tables of data
-    // RMS of scattering
-    //std::cout << "RMS of electron scattering is"
 }
