@@ -1,2 +1,4 @@
 build/
 *.root
+*.eps
+*.pdf
