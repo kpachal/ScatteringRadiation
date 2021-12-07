@@ -38,33 +38,6 @@ def compute_rms_2D(hist) :
     RMS = math.sqrt(sum2/hist.Integral())
     return RMS
 
-def normalise_solid_angle(inhist, radians=True) :
-
-    newhist = inhist.Clone(inhist.GetName()+"_norm")
-    newhist.SetDirectory(0)
-    newhist.Reset()
-
-    # Solid angle subtended = 2 pi [-cos theta] | theta 1 to theta 2
-    for bin in range(newhist.GetNbinsX()+1) :
-        fullval = inhist.GetBinContent(bin)
-        theta1 = inhist.GetBinLowEdge(bin)
-        theta2 = inhist.GetBinLowEdge(bin+1)
-        if radians :
-            normval = 2 * math.pi * (- math.cos(theta2) + math.cos(theta1))
-        else :
-            normval = 2 * math.pi * (- math.cos(np.radians(theta2)) + math.cos(np.radians(theta1)))
-        newhist.SetBinContent(bin,fullval/normval)
-        newhist.SetBinError(bin,inhist.GetBinError(bin)/normval)
-
-    return newhist
-
-def norm_int_by_binwidth(hist) :
-
-    sum = 0
-    for bin in range(hist.GetNbinsX()+1) :
-        sum = sum + hist.GetBinContent(bin)/hist.GetBinWidth(bin)
-    return sum
-
 savehists = {}
 particle_dict = {"eminus" : {"full" : "Electrons", "short" : "e-"},
                  "eplus" : {"full" : "Positrons", "short" : "e+"},
@@ -98,7 +71,8 @@ for thickness in 1, 5, 10 :
     # Normalised scattering angle
     polar_scattering = infile.Get("angle_polar_{0}".format(particle))
     polar_scattering.SetDirectory(0)
-    polar_scattering_norm = normalise_solid_angle(polar_scattering,radians=True)
+    polar_scattering_norm = infile.Get("angle_polar_{0}_norm".format(particle))
+    polar_scattering_norm.SetDirectory(0)
     polar_scattering_norm.SetName(polar_scattering_norm.GetName()+"_{0}micron".format(thickness))
     thisThickness["polar_scattering_{0}".format(particle)] = polar_scattering
     thisThickness["polar_scattering_norm_{0}".format(particle)] = polar_scattering_norm
@@ -106,7 +80,8 @@ for thickness in 1, 5, 10 :
     # Normalised scattering angle, axis in deg
     polar_scattering_deg = infile.Get("angle_polar_deg_{0}".format(particle))
     polar_scattering_deg.SetDirectory(0)
-    polar_scattering_deg_norm = normalise_solid_angle(polar_scattering_deg,radians=False)
+    polar_scattering_deg_norm = infile.Get("angle_polar_deg_{0}_norm".format(particle))
+    polar_scattering_deg_norm.SetDirectory(0)
     polar_scattering_deg_norm.SetName(polar_scattering_deg_norm.GetName()+"_{0}micron".format(thickness))
     thisThickness["polar_scattering_deg_{0}".format(particle)] = polar_scattering_deg
     thisThickness["polar_scattering_deg_norm_{0}".format(particle)] = polar_scattering_deg_norm
@@ -132,19 +107,9 @@ for thickness in 1, 5, 10 :
     # Now normalize to match theory curves and plot.
     # Only this if e-
     if "eminus" in particle :
+        # Should already be fitted to the distribution
         this_DCS = theory_curves[thickness]
-        # Believe it should match solid-angle-normalized.
-        # Match to bin edges for safety.
-        startEdge = polar_scattering_norm.GetBinLowEdge(polar_scattering_norm.FindBin(0.01)+1)
-        stopEdge = polar_scattering_norm.GetBinLowEdge(polar_scattering_norm.FindBin(1.0))
-        integral_theory = integrals_multiple_scattering[iThickness]
-        integral_current = polar_scattering_norm.Integral(polar_scattering_norm.FindBin(0.01),polar_scattering_norm.FindBin(1.0))
-        print("Integral from bin",polar_scattering_norm.FindBin(0.01),"to bin",polar_scattering_norm.FindBin(1.0),"is",integral_current)
-        print("whereas total integral is",polar_scattering_norm.Integral(1,polar_scattering_norm.GetNbinsX()))
-        print("Integral norm to bin width is",norm_int_by_binwidth(polar_scattering_norm))
-        print("Want to scale to",integral_theory)
-        polar_scattering_norm.Scale(integral_theory/integral_current)
-        myPainter.drawHistsWithTF1s([polar_scattering_norm],[this_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [rad.]",ylabel="Arbitrary units",plotname="scattering_w_theory_{0}microns".format(thickness),doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=2,extraLines=[],xlow=0,xhigh=1.0,ylow=None,yhigh=1e3)    
+        myPainter.drawHistsWithTF1s([polar_scattering_norm],[this_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [rad.]",ylabel="Arbitrary units",plotname="scattering_w_theory_{0}microns".format(thickness),doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1.0,ylow=None,yhigh=1e3)    
 
     # Save positions and momenta
     momx = infile.Get("momentum_x_{0}".format(particle))

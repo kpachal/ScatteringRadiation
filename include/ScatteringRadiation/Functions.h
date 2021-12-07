@@ -9,7 +9,9 @@ class MoliereDCS {
    MoliereDCS(double foilThickness, double energy, double mass);
    ~MoliereDCS() {};
 
-   double operator() (double *x, double *p);
+   double operator() (double *x, double *par);
+
+   double estimate_width();
 
  private :
 

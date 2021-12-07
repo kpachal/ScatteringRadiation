@@ -25,13 +25,13 @@ MoliereDCS::MoliereDCS(double foilThickness, double energy, double mass) {
 
     // Define individual needed quantities
     double N = (NA * density_Ta)/(cm3_to_fm3 * Aweight_Ta); // units: 1/fm^3
-    double p_beta_c = momentum*momentum/energy; // Units are MeV. Validated.
+    m_p_beta_c = momentum*momentum/energy; // Units are MeV. Validated.
 
     // Mid level calculations
     m_AM = pow(0.510,2)/(4*pow(137,2)*pow(momentum,2)) 
                 * pow((0.885*pow(Z,-1/3)),-2)
                 * (1.13 + 3.76 * pow(Z/(beta*137),2)); // units: none
-    m_chiC_2_const = micron_to_fm * N * 4 * M_PI * pow(Z*Zprime*esquared,2)/pow(p_beta_c,2);
+    m_chiC_2_const = micron_to_fm * N * 4 * M_PI * pow(Z*Zprime*esquared,2)/pow(m_p_beta_c,2);
 
     // These splines are used for low values of v.
     // They use data from Bethe (Phys Rev 89 (6) 1953)
@@ -84,7 +84,7 @@ double MoliereDCS::solve_B(double b) {
 }
 
 // Using 2.53, 2.59, 2.6 from JMFV
-double MoliereDCS::operator() (double *x, double *p) {
+double MoliereDCS::operator() (double *x, double *par) {
 
     // Parsing parameters:
     // don't care about p.
@@ -125,5 +125,15 @@ double MoliereDCS::operator() (double *x, double *p) {
     double FM = 1./(2.*M_PI) * pow(theta/sin(theta),0.5) * exp(chiC_2*B/16.)/(chiC_2*B) * (f0 + f1/B + f2/pow(B,2));
     //std::cout << "Theta = " << theta << " gives MDCS = " << FM << std::endl;
 
-    return FM;
+    return par[0]*FM;
+}
+
+double MoliereDCS::estimate_width() {
+
+    double radiation_length_Ta = 0.4094*10000.; // Initial value in cm; converting to microns
+    double x_over_x0 = m_foilThickness/radiation_length_Ta;
+
+    double width = 13.6/m_p_beta_c * sqrt(x_over_x0);// * (1 + 0.038*log(x_over_x0));
+    
+    return width;
 }

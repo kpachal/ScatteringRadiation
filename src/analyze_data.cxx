@@ -35,7 +35,7 @@ struct particle {
 
 std::vector<particle> build_particles(int desiredPDGID, std::vector<double> px, std::vector<double> py, std::vector<double> pz, std::vector<double> x, std::vector<double> y, std::vector<double> z, std::vector<double> mass, std::vector<int> pdgIDs) {
     std::vector<particle> particles;
-    for (int i=0; i<px.size(); i++) {
+    for (unsigned int i=0; i<px.size(); i++) {
         // Skip if wrong pdgID
         if (pdgIDs.at(i) != desiredPDGID) continue;
         particle newparticle;
@@ -52,6 +52,34 @@ std::vector<particle> build_particles(int desiredPDGID, std::vector<double> px, 
         particles.push_back(newparticle);
     }
     return particles;
+}
+
+double radians(double angle) {
+    return M_PI*angle/180.;
+}
+
+TH1D normalise_solid_angle(const TH1D * inhist, bool inRadians=true) {
+
+    TH1D newhist(*(TH1D*)inhist->Clone());
+    newhist.SetName(Form("%s_norm",inhist->GetName()));
+    newhist.SetDirectory(0);
+    newhist.Reset();
+
+    // Solid angle subtended = 2 pi [-cos theta] | theta 1 to theta 2
+    for (int bin = 1; bin < newhist.GetNbinsX()+1; bin++) {
+        double fullval = inhist->GetBinContent(bin);
+        double theta1 = inhist->GetBinLowEdge(bin);
+        double theta2 = inhist->GetBinLowEdge(bin+1);
+        double normval;
+        if (inRadians)
+            normval = 2 * M_PI * (- cos(theta2) + cos(theta1));
+        else
+            normval = 2 * M_PI * (- cos(radians(theta2)) + cos(radians(theta1)));
+        newhist.SetBinContent(bin,fullval/normval);
+        newhist.SetBinError(bin,inhist->GetBinError(bin)/normval);
+    }
+
+    return newhist;
 }
 
 int main(int argc, char* argv[]) {
@@ -107,7 +135,7 @@ int main(int argc, char* argv[]) {
     // Add columns
     auto full_types = frame.Define("fullType",[](std::vector<int> processType, std::vector<int> processSubType)
         {   std::vector<int> fullTypes;
-            for (int i=0; i<processType.size(); i++) fullTypes.push_back(processType.at(i)*1000+processSubType.at(i));
+            for (unsigned int i=0; i<processType.size(); i++) fullTypes.push_back(processType.at(i)*1000+processSubType.at(i));
             return fullTypes;
         }, {"processType","processSubType"} );
     auto n_interesting = full_types.Define("nInteresting", [](std::vector<int> fullType)
@@ -213,6 +241,7 @@ int main(int argc, char* argv[]) {
     // Save histograms to evaluate at the end
     std::vector<ROOT::RDF::RResultPtr<TH1D> > outputs;
     std::vector<ROOT::RDF::RResultPtr<TH2D> > outputs_2D;
+    std::vector<ROOT::RDF::RResultPtr<TH1D> > outputs_to_norm;
 
     // Make general histograms
     auto hist_fullTypes = final_frame.Histo1D("fullType"); outputs.push_back(hist_fullTypes);
@@ -335,7 +364,7 @@ int main(int argc, char* argv[]) {
         auto momentum_xy = frame_withQuantities.Histo2D({("momentum_xy_" + name).c_str(),("momentum_xy_" + name).c_str(),1200,-50,50,1200,-50,50},("momentum_x_" + name).c_str(),("momentum_y_" + name).c_str());
         outputs_2D.push_back(momentum_xy);
         auto particle_angle = frame_withQuantities.Histo1D({("angle_polar_" + name).c_str(),("angle_polar_" + name).c_str(),314,0,3.14},("angle_polar_" + name).c_str());
-        outputs.push_back(particle_angle);
+        outputs_to_norm.push_back(particle_angle); // need to keep track of this one for later
         auto particle_pos_x = frame_withQuantities.Histo1D({("position_x_" + name).c_str(),("position_x_" + name).c_str(),402,-2010,2010},("position_x_" + name).c_str());      
         outputs.push_back(particle_pos_x);
         auto particle_pos_y = frame_withQuantities.Histo1D({("position_y_" + name).c_str(),("position_y_" + name).c_str(),402,-2010,2010},("position_y_" + name).c_str());      
@@ -345,7 +374,7 @@ int main(int argc, char* argv[]) {
         auto position_xy = frame_withQuantities.Histo2D({("position_xy_" + name).c_str(),("position_xy_" + name).c_str(),1202,-2010,2010,1202,-2010,2010},("position_x_" + name).c_str(),("position_y_" + name).c_str());
         outputs_2D.push_back(position_xy);
         auto particle_angle_polar_deg = frame_withQuantities.Histo1D({("angle_polar_deg_" + name).c_str(),("angle_polar_deg_" + name).c_str(),180,0,180},("angle_polar_deg_" + name).c_str());
-        outputs.push_back(particle_angle_polar_deg);
+        outputs_to_norm.push_back(particle_angle_polar_deg); // need to keep track of this one for later
         auto particle_angle_x = frame_withQuantities.Histo1D({("angle_x_" + name).c_str(),("angle_x_" + name).c_str(),628,-3.14,3.14},("angle_x_" + name).c_str());
         outputs.push_back(particle_angle_x); 
         auto particle_angle_y = frame_withQuantities.Histo1D({("angle_y_" + name).c_str(),("angle_y_" + name).c_str(),628,-3.14,3.14},("angle_y_" + name).c_str());
@@ -372,6 +401,18 @@ int main(int argc, char* argv[]) {
     output_file->cd();
     for (auto hist : outputs) hist.GetValue().Write();
     for (auto hist : outputs_2D) hist.GetValue().Write();
+
+    // Now histograms have been evaluated, can collect the ones I want to
+    // normalise and do that.
+    for (auto hist : outputs_to_norm) {
+        hist.GetValue().Write();
+        TString thisname = hist.GetValue().GetName();
+        bool radians = true;
+        if (thisname.Contains("_deg_")) radians = false;
+        TH1D polar_scattering_norm = normalise_solid_angle(&hist.GetValue(),radians);
+        polar_scattering_norm.Write();
+    }
+
     output_file->Close();
 
 }
