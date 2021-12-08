@@ -7,6 +7,8 @@
 
 MoliereDCS::MoliereDCS(double foilThickness, double energy, double mass) {
 
+    m_useDegrees = false;
+
     m_foilThickness = foilThickness;
     // Convert momentum and mass to energy:
     double momentum = sqrt( pow(energy,2) - pow(mass,2)); // all in MeV
@@ -86,9 +88,11 @@ double MoliereDCS::solve_B(double b) {
 // Using 2.53, 2.59, 2.6 from JMFV
 double MoliereDCS::operator() (double *x, double *par) {
 
-    // Parsing parameters:
-    // don't care about p.
+    // Parsing parameters and variables:
     double theta = x[0];
+
+    // If useDegrees is true, it means we need to assume theta is input in degrees, not rads.
+    if (m_useDegrees) theta = M_PI*theta/180.;
 
     // Path length 
     double s = m_foilThickness/cos(theta); // units: microns
@@ -134,6 +138,6 @@ double MoliereDCS::estimate_width() {
     double x_over_x0 = m_foilThickness/radiation_length_Ta;
 
     double width = 13.6/m_p_beta_c * sqrt(x_over_x0);// * (1 + 0.038*log(x_over_x0));
-    
+
     return width;
 }

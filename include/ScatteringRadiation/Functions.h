@@ -13,6 +13,8 @@ class MoliereDCS {
 
    double estimate_width();
 
+   void setUseDegrees(bool useDegrees) {m_useDegrees = useDegrees; };
+
  private :
 
    double m_foilThickness;
@@ -24,6 +26,8 @@ class MoliereDCS {
    TSpline3 * m_lookup_f0;
    TSpline3 * m_lookup_f1;
    TSpline3 * m_lookup_f2;
+
+   bool m_useDegrees;
 
    double solve_B(double b);
 

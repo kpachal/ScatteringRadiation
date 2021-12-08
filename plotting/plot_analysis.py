@@ -48,9 +48,15 @@ particle_dict = {"eminus" : {"full" : "Electrons", "short" : "e-"},
 intheoryfile = ROOT.TFile.Open("../theory_curves.root","READ")
 theory_curves = {}
 for thickness in 1, 5, 10 :
+  thisdict = {}
   multiple_scattering_DCS = intheoryfile.Get("MDCS_{0}micron".format(thickness))
-  theory_curves[thickness] = multiple_scattering_DCS
+  thisdict["rad"] = multiple_scattering_DCS
+  multiple_scattering_DCS_deg = intheoryfile.Get("MDCS_{0}micron_deg".format(thickness))
+  thisdict["deg"] = multiple_scattering_DCS_deg
+  theory_curves[thickness] = thisdict
 integrals_multiple_scattering = intheoryfile.Get("integrals_MDCS")
+Widths_fromTDRFormula = intheoryfile.Get("Widths_fromTDRFormula")
+Widths_fromTF1 = intheoryfile.Get("Widths_fromTF1")
 intheoryfile.Close()
 
 # Now get the main plots.
@@ -108,8 +114,10 @@ for thickness in 1, 5, 10 :
     # Only this if e-
     if "eminus" in particle :
         # Should already be fitted to the distribution
-        this_DCS = theory_curves[thickness]
-        myPainter.drawHistsWithTF1s([polar_scattering_norm],[this_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [rad.]",ylabel="Arbitrary units",plotname="scattering_w_theory_{0}microns".format(thickness),doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1.0,ylow=None,yhigh=1e3)    
+        rad_DCS = theory_curves[thickness]["rad"]
+        myPainter.drawHistsWithTF1s([polar_scattering_norm],[rad_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [rad.]",ylabel="Arbitrary units",plotname="scattering_w_theory_{0}microns".format(thickness),doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1.0,ylow=None,yhigh=1e3)
+        deg_DCS = theory_curves[thickness]["deg"]
+        myPainter.drawHistsWithTF1s([polar_scattering_deg_norm],[deg_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [deg.]",ylabel="Arbitrary units",plotname="scattering_w_theory_deg_{0}microns".format(thickness),doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=90.,ylow=None,yhigh=1e3)            
 
     # Save positions and momenta
     momx = infile.Get("momentum_x_{0}".format(particle))
@@ -192,13 +200,20 @@ for thickness in 1, 5, 10 :
   test4 = compute_rms_1D(savehists[thickness]["momentum_y_eminus"])
   # print("Test RMS:",test3, test4) - validated
 
+  # Widths evaluated from the TDR formula (PDG formula) and from the TF1s
+  index = [1, 5, 10].index(thickness)
+  estimate_formula = Widths_fromTDRFormula[index]
+  estimate_TF1 = Widths_fromTF1[index]
+  print("Width estimate from formula in TDR:",estimate_formula)
+  print("Width estimate from TF1:",estimate_TF1)
+
   # Not using ROOT's RMS since it compares to the mean along the x axis and I want to compare to zero
   # RMS of normalised distribution
   RMS_norm_dist = compute_rms_1D(savehists[thickness]["polar_scattering_norm_eminus"])
-  print("RMS from solid-angle-normalised distribution {0:1.2g} = {1:1.2g} degrees".format(RMS_norm_dist,math.degrees(RMS_norm_dist)))
-  # RMS by hand using bin center - non-normalised distribution
-  RMS_notnormalised = compute_rms_1D(savehists[thickness]["polar_scattering_eminus"])
-  print("RMS from unnormalised distribution {0:1.2g} = {1:1.2g} degrees".format(RMS_notnormalised,math.degrees(RMS_notnormalised)))
+  print("RMS from solid-angle-normalised Geant4 distribution {0:1.2g} = {1:1.2g} degrees".format(RMS_norm_dist,math.degrees(RMS_norm_dist)))
+  # RMS by hand using bin center - non-normalised distribution. Pretty sure I do not want this
+  #RMS_notnormalised = compute_rms_1D(savehists[thickness]["polar_scattering_eminus"])
+  #print("RMS from unnormalised distribution {0:1.2g} = {1:1.2g} degrees".format(RMS_notnormalised,math.degrees(RMS_notnormalised)))
 
   # RMS of 2D distribution - position - and calculate from there
   RMS_position_2D = compute_rms_2D(savehists[thickness]["position_xy_eminus"])
@@ -210,3 +225,4 @@ for thickness in 1, 5, 10 :
   RMS_xonly = math.atan(savehists[thickness]["position_xy_eminus"].GetRMS(1)/2000.)
   RMS_yonly = math.atan(savehists[thickness]["position_xy_eminus"].GetRMS(2)/2000.)
   print("For comparison, RMS along x only and y only give: {0:1.2g} {1:1.2g} = {2:1.2g} {3:1.2g} degrees".format(RMS_xonly,RMS_yonly,math.degrees(RMS_xonly),math.degrees(RMS_yonly)))
+  print("from RMS x =",savehists[thickness]["position_xy_eminus"].GetRMS(1),"mm, RMS y =",savehists[thickness]["position_xy_eminus"].GetRMS(2),"mm")
