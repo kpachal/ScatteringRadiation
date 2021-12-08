@@ -2,3 +2,4 @@ build/
 *.root
 *.eps
 *.pdf
+.DS_Store

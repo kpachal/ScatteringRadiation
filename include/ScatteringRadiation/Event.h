@@ -20,6 +20,8 @@ class EventAction : public G4UserEventAction {
     void FillProcessInfo(int processType, int processSubType);
     void FillTrackInfo(int pdgID, double posX, double posY, double posZ, 
                               double momX, double momY, double momZ, double mass);
+    void setDoOnly(bool doOnly, int PDGIDOnly);
+
   private :
 
     RunAction * m_RunAction;
@@ -35,6 +37,9 @@ class EventAction : public G4UserEventAction {
     std::vector<double> m_momY;   ///< y momentum of each particle as it leaves sensitive volume
     std::vector<double> m_momZ;   ///< z momentum of each particle as it leaves sensitive volume
     std::vector<double> m_mass;   ///< particle mass
+
+    bool m_do_save_only; // Keep only one type of particle?
+    int m_save_only; // PDG ID of particle type to save, if only one
 
 };
 

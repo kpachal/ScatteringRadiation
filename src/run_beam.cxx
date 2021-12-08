@@ -19,6 +19,8 @@
 #include "G4UIExecutive.hh"
 #include "G4VisExecutive.hh"
 
+std::map<std::string,int> particle_types = { {"eplus",-11} ,{"eminus", 11}, {"gamma", 22}, {"neutron", 2112} };
+
 int main(int argc, char* argv[])
 {
 
@@ -26,6 +28,8 @@ int main(int argc, char* argv[])
   int nEvents = 10000;
   double target_thickness = 10; // thickness of foil in microns
   std::string output_simple = "output";
+  bool do_save_only = false;
+  std::string save_only = "";
   int ip=1;
   while (ip<argc) {
 
@@ -55,6 +59,16 @@ int main(int argc, char* argv[])
           } else {std::cout<<"\nNo tree name inserted"<<std::endl; break;}
         }
 
+        // Keep just one particle type
+        // Options: eplus, eminus, gamma, neutron
+        else if (std::string(argv[ip])=="--saveOnly") {
+          if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
+            do_save_only = true;
+            save_only = argv[ip+1];
+            ip+=2;
+          } else {std::cout<<"\nNo tree name inserted"<<std::endl; break;}
+        }        
+
     } else { //if command does not start with "--"
         std::cout << "\nCommand '"<<std::string(argv[ip])<<"' unknown"<<std::endl;
         break;
@@ -64,7 +78,9 @@ int main(int argc, char* argv[])
 
   // Format output name
   std::stringstream stream;
-  stream << output_simple << "_" << std::setprecision(2) << target_thickness << "micron_1e" << log10(nEvents) << "events.root";
+  stream << output_simple << "_" << std::setprecision(2) << target_thickness << "micron_1e" << log10(nEvents) << "events";
+  if (do_save_only) stream << "_" << save_only;
+  stream << ".root";
   std::string output_filename = stream.str();
 
 	//Get instance of runmanager
@@ -77,8 +93,11 @@ int main(int argc, char* argv[])
   G4VModularPhysicsList* physicsList = new QBBC;
   runManager->SetUserInitialization(physicsList);
 
-  // From This includes setting up the beamline
-  runManager->SetUserInitialization(new Action(output_filename)); 
+  // This includes setting up the beamline
+  // Send false and a blank number if we keep everything (default)
+  int PDG_only = 0;
+  if (do_save_only) PDG_only = particle_types[save_only];
+  runManager->SetUserInitialization(new Action(output_filename,do_save_only,PDG_only)); 
 
   // Initialize G4 kernel
 	runManager->Initialize();
