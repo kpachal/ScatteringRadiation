@@ -25,12 +25,13 @@ int main(int argc, char* argv[])
 {
 
   // Parse run parameters.
-  int nEvents = 10000;
+  long nEvents = 10000;
   double target_thickness = 10; // thickness of foil in microns
   std::string output_simple = "output";
   bool do_save_only = false;
   std::string save_only = "";
   int ip=1;
+  int seed = 0;
   while (ip<argc) {
 
     if (std::string(argv[ip]).substr(0,2)=="--") {
@@ -38,9 +39,9 @@ int main(int argc, char* argv[])
         // Number of events
         if (std::string(argv[ip])=="--nEvents") {
           if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
-            nEvents = std::stoi(argv[ip+1]);
+            nEvents = std::stol(argv[ip+1]);
             ip+=2;
-          } else {std::cout<<"\nNo input file name inserted."<<std::endl; break;}
+          } else {std::cout<<"\nNo number of events specified."<<std::endl; break;}
         }
 
         // Foil thickness
@@ -48,7 +49,7 @@ int main(int argc, char* argv[])
           if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
             target_thickness = std::stod(argv[ip+1]);
             ip+=2;
-          } else {std::cout<<"\nNo tree name inserted"<<std::endl; break;}
+          } else {std::cout<<"\nNo foil thickness inserted"<<std::endl; break;}
         }
 
         // Output file name
@@ -56,7 +57,7 @@ int main(int argc, char* argv[])
           if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
             output_simple = argv[ip+1];
             ip+=2;
-          } else {std::cout<<"\nNo tree name inserted"<<std::endl; break;}
+          } else {std::cout<<"\nNo output name inserted"<<std::endl; break;}
         }
 
         // Keep just one particle type
@@ -66,7 +67,15 @@ int main(int argc, char* argv[])
             do_save_only = true;
             save_only = argv[ip+1];
             ip+=2;
-          } else {std::cout<<"\nNo tree name inserted"<<std::endl; break;}
+          } else {std::cout<<"\nNo particle type inserted"<<std::endl; break;}
+        }
+
+        // Random number seed for parallelisation
+        if (std::string(argv[ip])=="--seed") {
+          if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
+            seed = std::stoi(argv[ip+1]);
+            ip+=2;
+          } else {std::cout<<"\nNo seed inserted."<<std::endl; break;}
         }        
 
     } else { //if command does not start with "--"
@@ -80,8 +89,14 @@ int main(int argc, char* argv[])
   std::stringstream stream;
   stream << output_simple << "_" << std::setprecision(2) << target_thickness << "micron_1e" << log10(nEvents) << "events";
   if (do_save_only) stream << "_" << save_only;
+  if (seed) stream << "_seed" << seed;
   stream << ".root";
   std::string output_filename = stream.str();
+
+  // Set seed before initialising runmanager
+  if (seed) {
+    CLHEP::HepRandom::setTheSeed(seed); G4Random::setTheSeed(seed);
+  }
 
 	//Get instance of runmanager
 	G4RunManager * runManager = new G4RunManager;
@@ -101,6 +116,8 @@ int main(int argc, char* argv[])
 
   // Initialize G4 kernel
 	runManager->Initialize();
+
+  std::cout << "Will save outputs to " << output_filename << std::endl;
 
   // Setting up the user interface to be nice.
   /*G4UIExecutive * ui = new G4UIExecutive(argc, argv);
