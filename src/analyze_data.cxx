@@ -58,6 +58,19 @@ double radians(double angle) {
     return M_PI*angle/180.;
 }
 
+std::vector<std::string> parse_files(std::string inputstring) {
+   std::stringstream ss(inputstring);
+   std::vector<std::string> result;
+
+    while( ss.good() )
+    {
+        std::string substr;
+        getline(ss, substr, ',');
+        result.push_back(substr);
+    }
+    return result;
+}
+
 TH1D normalise_solid_angle(const TH1D * inhist, bool inRadians=true) {
 
     TH1D newhist(*(TH1D*)inhist->Clone());
@@ -84,19 +97,29 @@ TH1D normalise_solid_angle(const TH1D * inhist, bool inRadians=true) {
 
 int main(int argc, char* argv[]) {
 
-    std::string input_filename = "output.root";
+    std::string input_name = "output.root";
     std::string tree_name = "Events";
+    std::string output_filename = "";
     int ip=1;
     while (ip<argc) {
 
       if (std::string(argv[ip]).substr(0,2)=="--") {
 
           // Input file
+          // or comma-separated list of files, WITHOUT SPACES
           if (std::string(argv[ip])=="--input") {
             if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
-              input_filename = argv[ip+1];
+              input_name = argv[ip+1];
               ip+=2;
             } else {std::cout<<"\nNo input file name inserted."<<std::endl; break;}
+          }
+
+          // Output file
+          else if (std::string(argv[ip])=="--output") {
+            if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
+              output_filename = argv[ip+1];
+              ip+=2;
+            } else {std::cout<<"\nNo output file name inserted"<<std::endl; break;}
           }
 
           // Tree name
@@ -114,23 +137,29 @@ int main(int argc, char* argv[]) {
     }//end while loop
 
     // Just stop if don't have needed info
-    if (input_filename.empty()) {
-      std::cout << "No file name to run on!" << std::endl;
+    if (input_name.empty()) {
+      std::cout << "No input name to run on!" << std::endl;
       exit(1);
     } else if (tree_name.empty()) {
       std::cout << "You need to specify a tree to use." << std::endl;
       exit(1);
     }
 
-    std::string output_filename = std::regex_replace(input_filename, std::regex("output"),"results");
+    std::vector<std::string> files_to_use = parse_files(input_name);
 
-    std::cout << "Running over file: " << input_filename << std::endl;
-    std::vector<std::string> files_to_use = {input_filename};
+    std::cout << "Running over file(s): ";
+    for (auto filename : files_to_use) std::cout << filename << " " << std::endl;
+
+    if (output_filename.empty()) {
+        if (files_to_use.size() == 1) output_filename = std::regex_replace(files_to_use.at(0), std::regex("output"),"results");
+        else output_filename = "result.root";
+    } 
+    std::cout << "Output filename is: " << output_filename << std::endl;
 
     // Make the RDataFrame!
-    TFile *fin = TFile::Open(input_filename.c_str(), "READ");
-    TTree *tree = (TTree*)(fin -> Get(tree_name.c_str()));
-    RDataFrame frame(*tree);
+    //TFile *fin = TFile::Open(input_filename.c_str(), "READ");
+    //TTree *tree = (TTree*)(fin -> Get(tree_name.c_str()));
+    RDataFrame frame(tree_name.c_str(),files_to_use);
 
     // Add columns
     auto full_types = frame.Define("fullType",[](std::vector<int> processType, std::vector<int> processSubType)
