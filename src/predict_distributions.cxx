@@ -7,6 +7,19 @@
 
 #include "ScatteringRadiation/Functions.h"
 
+double nNeutrons(double thickness) {
+
+    double radiation_length_Ta = 0.4094*10000.; // Initial value in cm; converting to microns
+    double T = thickness/radiation_length_Ta; // target thickness in radiation lengths
+    std::cout << "\nT is " << T << std::endl;
+    double E0 = 31; // Beam energy in MeV
+    double Z = 23;
+
+    double Y = 8.0e-4 * (1 + 0.12*Z - 0.001*pow(Z,2)) * pow(T,2)/E0 * (1 + 0.04/T);
+    return Y;
+
+}
+
 int main(int argc, char* argv[]) {
 
    std::string outputfilename = "theory_curves.root";
@@ -72,6 +85,11 @@ int main(int argc, char* argv[]) {
         est_widths.push_back(std::make_pair(width,width_obs));
 
     }
+
+    // Now neutron numbers.
+    double nNeut = nNeutrons(thickness);
+    std::cout << "For foil thickness " << thickness << " microns, Y = " << nNeut << " n per MeV per e" << std::endl;
+    std::cout << "For 31 MeV beam energy and 5e10 electrons, that is " << nNeut * 5e10 * 31 << " neutrons." << std::endl;
 
    }
 
