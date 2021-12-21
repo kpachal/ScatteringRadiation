@@ -3,4 +3,5 @@ build/
 *.eps
 *.pdf
 *.jpg
+*.xlsx
 .DS_Store

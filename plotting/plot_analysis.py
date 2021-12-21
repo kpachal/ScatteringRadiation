@@ -3,6 +3,7 @@ import math
 import numpy as np
 from art.morisot_2p0 import Morisot_2p0
 import sys,os
+from openpyxl import Workbook
 
 # Initialize painter
 myPainter = Morisot_2p0()
@@ -22,11 +23,12 @@ myPainter.CME = -1
 # Prediction for electron destinations (multiple scattering): goudsmit-saunderson
 
 # Standard
-#infilename = "../results_{0}micron_1e8events.root"
-infilename = "../results_{0}micron_5e10events_neutron.root"
+infilename = "../results_{0}micron_1e8events.root"
+#infilename = "../results_{0}micron_5e10events_neutron.root"
 
 # Only one particle?
-useOnly = "neutron"
+#useOnly = "neutron"
+useOnly = ""
 
 # Additional tag?
 tag = ""
@@ -154,12 +156,18 @@ for thickness in 1, 5, 10 :
         thishist.SetDirectory(0)
         thisThickness[histname] = thishist
 
-    # p (energy not representative for neutrons)
+    # p
     momentum = infile.Get("momentum_{0}".format(particle))
     momentum.SetDirectory(0)
     if "neutron" in particle : momentum.Rebin(rebin_neutrons)
     thisThickness["momentum_{0}".format(particle)] = momentum
     myPainter.drawOverlaidHistos([momentum],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Momentum [MeV]",ylabel="Number of {0}".format(particle_full),plotname="plots/momentum_{0}_{1}microns".format(particle,thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=None,ylow=None,yhigh=None,useTrueEdges=True)
+
+    # Energy (not representative for neutrons)
+    energy = infile.Get("energy_{0}".format(particle))
+    energy.SetDirectory(0)
+    thisThickness["energy_{0}".format(particle)] = energy
+    myPainter.drawOverlaidHistos([energy],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Energy [MeV]",ylabel="Number of {0}".format(particle_full),plotname="plots/energy_{0}_{1}microns".format(particle,thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=None,ylow=None,yhigh=None,useTrueEdges=True)
 
     # Collect and save 2d histograms
     momentum_2d = infile.Get("momentum_xy_{0}".format(particle))
@@ -207,10 +215,53 @@ for thickness in savehists.keys() :
     hist.Write()
 outfile.Close()
 
+# Now save them into a spreadsheet version.
+# We'll do a new sheet per thickness, for ease.
+keylist = sorted(savehists.keys())
+for thickness in savehists.keys() :
+  # Workbook for saving in excel format
+  wb = Workbook()
+  for index,name in enumerate(savehists[thickness].keys()) :
+
+    # Do this only if not 2D:
+    if "_xy_" in name : continue
+
+    hist = savehists[thickness][name]
+    if len(name) > 31 :
+      safename = name[:31]
+    else :
+      safename = name
+    if index is 0 :
+      ws = wb.active
+      ws.title = safename
+    else :
+      ws = wb.create_sheet(safename)
+
+    # Now fill.
+    ws['A1'] = "Title: "+hist.GetName()
+    ws['A2'] = "Bin number"
+    ws['B2'] = "Lower edge"
+    ws['C2'] = "Upper edge"
+    ws['D2'] = "Center"
+    ws['E2'] = "Bin content"
+    rowindex = 3
+    for bin in range(1, hist.GetNbinsX()+1) :
+      ws['A{0}'.format(rowindex)] = bin
+      ws['B{0}'.format(rowindex)] = hist.GetBinLowEdge(bin)
+      ws['C{0}'.format(rowindex)] = hist.GetBinLowEdge(bin+1)
+      ws['D{0}'.format(rowindex)] = hist.GetBinCenter(bin)
+      ws['E{0}'.format(rowindex)] = hist.GetBinContent(bin)
+      rowindex += 1
+
+  wb.save("histograms_{0}micronfoil.xlsx".format(thickness))
+
 
 # Beam spread results, electrons only - compare methods
 if (useOnly and "eminus" not in useOnly) : sys.exit()
 for thickness in 1, 5, 10 :
+  # In case we did only one or two files
+  if thickness not in savehists.keys() : continue
+
   # validate RMS calculation with one that is for sure OK
   test1 = savehists[thickness]["position_x_eminus"].GetRMS()
   test2 = compute_rms_1D(savehists[thickness]["position_x_eminus"])
