@@ -392,7 +392,7 @@ int main(int argc, char* argv[]) {
         outputs.push_back(particle_mom_z);
         auto momentum_xy = frame_withQuantities.Histo2D({("momentum_xy_" + name).c_str(),("momentum_xy_" + name).c_str(),1200,-50,50,1200,-50,50},("momentum_x_" + name).c_str(),("momentum_y_" + name).c_str());
         outputs_2D.push_back(momentum_xy);
-        auto particle_angle = frame_withQuantities.Histo1D({("angle_polar_" + name).c_str(),("angle_polar_" + name).c_str(),314,0,3.14},("angle_polar_" + name).c_str());
+        auto particle_angle = frame_withQuantities.Histo1D({("angle_polar_" + name).c_str(),("angle_polar_" + name).c_str(),31400,0,3.14},("angle_polar_" + name).c_str());
         outputs_to_norm.push_back(particle_angle); // need to keep track of this one for later
         auto particle_pos_x = frame_withQuantities.Histo1D({("position_x_" + name).c_str(),("position_x_" + name).c_str(),402,-2010,2010},("position_x_" + name).c_str());      
         outputs.push_back(particle_pos_x);
