@@ -2,6 +2,7 @@
 #include "ScatteringRadiation/SensitiveSurface.h"
 #include "G4NistManager.hh"
 #include "G4Box.hh"
+#include "G4Tubs.hh"
 #include "G4PVPlacement.hh"
 
 G4VPhysicalVolume * Construction::Construct()
@@ -37,11 +38,26 @@ G4VPhysicalVolume * Construction::Construct()
 							0,                     //copy number
 							true);			       //overlaps checking                     
 
-	//Create  the shape of a target to fire particles at
-	G4double target_sizeX=2.5*CLHEP::cm;
-	G4double target_sizeY=2.5*CLHEP::cm;
-	G4double target_sizeZ=m_targetThickness*CLHEP::micrometer;
-	solidTarget = new G4Box("Target",target_sizeX, target_sizeY, target_sizeZ);
+	//Create  the shape of a target to fire particles at.
+
+	// Foil target:
+	if (m_target_type == foil) {
+		// such a square
+		G4double target_sizeX=2.5*CLHEP::cm;
+		G4double target_sizeY=2.5*CLHEP::cm;
+		G4double target_sizeZ=m_targetThickness*CLHEP::micrometer;
+		solidTarget = new G4Box("Target",target_sizeX, target_sizeY, target_sizeZ);
+	// Wire target:
+	} else if (m_target_type == wire) {
+		// totally tubular
+		G4double wire_half_length=2.5*CLHEP::cm;
+		G4double wire_radius = m_targetThickness*CLHEP::micrometer;
+		solidTarget = new G4Tubs("Target",
+					0., // inner radius
+					wire_radius, // outer radius
+					wire_half_length, // "height"
+					0, 2*M_PI); // angular coverage
+	}
 
 	//Create the target logical volume by
 	//assigning the material of the target to be tantalum
@@ -49,7 +65,8 @@ G4VPhysicalVolume * Construction::Construct()
 
 	//Create the target physical volume by placing it in the
 	//"logicWorld" logical volume.
-	physTarget = new G4PVPlacement(0,              //no rotation
+	if (m_target_type == foil) {
+		physTarget = new G4PVPlacement(0,              //no rotation
 							G4ThreeVector(0,0,0),  //in the center
 							logicTarget,           //its logical volume
 							"World",               //its name
@@ -57,6 +74,19 @@ G4VPhysicalVolume * Construction::Construct()
 							false,                 //no boolean operation
 							0,                     //copy number
 							true);			       //overlaps checking                     
+	} else if (m_target_type == wire) {
+		G4RotationMatrix* rotationMatrix = new G4RotationMatrix();
+		// I *think* this will make it horizontal through the beam
+		rotationMatrix->rotateY(90.*CLHEP::deg);
+		physTarget = new G4PVPlacement(rotationMatrix, //cut across the beam
+							G4ThreeVector(0,0,0),  //in the center
+							logicTarget,           //its logical volume
+							"World",               //its name
+							logicWorld,            //its mother  volume
+							false,                 //no boolean operation
+							0,                     //copy number
+							true);			       //overlaps checking      
+	}
 
     // Create the sensitive detector:
 	// just panels on the outer edges of the world box
