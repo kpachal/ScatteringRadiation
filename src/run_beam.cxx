@@ -148,8 +148,8 @@ int main(int argc, char* argv[])
     
     // Running commands to display what I'm doing
     uiManager->ApplyCommand("/run/initialize");
-    //uiManager->ApplyCommand("/vis/open OGL");
-    uiManager->ApplyCommand("/vis/open HepRepFile");
+    uiManager->ApplyCommand("/vis/open OGL");
+    //uiManager->ApplyCommand("/vis/open HepRepFile");
     uiManager->ApplyCommand("/vis/viewer/set/viewpointvector 1 1 1");
     uiManager->ApplyCommand("/vis/drawVolume");
     uiManager->ApplyCommand("/vis/viewer/set/autorefresh true");
