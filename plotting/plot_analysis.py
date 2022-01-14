@@ -4,6 +4,7 @@ import numpy as np
 from art.morisot_2p0 import Morisot_2p0
 import sys,os
 from openpyxl import Workbook
+import csv
 
 # Initialize painter
 myPainter = Morisot_2p0()
@@ -226,6 +227,16 @@ for thickness in savehists.keys() :
     # Do this only if not 2D:
     if "_xy_" in name : continue
 
+    # TEMP FIXME: do this only if not the polar angle
+    if "polar_scattering" not in name or "eminus" not in name : 
+      print("Skipping hist",name)
+      continue
+    elif "deg" in name :
+      print("Skipping hist",name)
+      continue
+    else :
+      print("Saving hist",name)
+
     hist = savehists[thickness][name]
     if len(name) > 31 :
       safename = name[:31]
@@ -255,6 +266,41 @@ for thickness in savehists.keys() :
 
   wb.save("histograms_{0}micronfoil.xlsx".format(thickness))
 
+  # 2D hists are too large for workbooks. Save as .npy.
+  for index,name in enumerate(savehists[thickness].keys()) :
+
+    # Do this only if not 2D - those will be separate:
+    if "_xy_" not in name : continue
+    # Skip momentum and anything that's not electron
+    if "momentum" in name : continue
+    if "eminus" not in name : continue
+    hist = savehists[thickness][name]
+    
+    # Checking info on this
+    print("Hist",name,"has nbins",hist.GetNbinsX()*hist.GetNbinsY())
+
+    # First row labels the columns.
+    label_row = ["Bin number",
+                "Lower edge (x) [mm]",
+                "Upper edge (x) [mm]",
+                "Lower edge (y) [mm]",
+                "Upper edge (y) [mm]",
+                "Bin content"]
+    # Here we want to include overflow bins
+    with open('{0}_{1}microntarget.csv'.format(name,thickness), 'w', newline='') as csvfile:
+      filewriter = csv.writer(csvfile, delimiter='\t',
+                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
+      filewriter.writerow(label_row)
+      for binx in range(0, hist.GetNbinsX()+2) :
+        for biny in range(0,hist.GetNbinsY()+2) :
+          newrow = []
+          newrow.append(hist.GetBin(binx,biny))
+          newrow.append(hist.GetXaxis().GetBinLowEdge(binx))
+          newrow.append(hist.GetXaxis().GetBinLowEdge(binx+1))
+          newrow.append(hist.GetYaxis().GetBinLowEdge(biny))
+          newrow.append(hist.GetYaxis().GetBinLowEdge(biny+1))
+          newrow.append(hist.GetBinContent(binx,biny))
+          filewriter.writerow(newrow)
 
 # Beam spread results, electrons only - compare methods
 if (useOnly and "eminus" not in useOnly) : sys.exit()

@@ -32,6 +32,7 @@ int main(int argc, char* argv[])
   std::string output_simple = "output";
   bool do_save_only = false;
   bool do_visuals = false;
+  bool do_beam = false;
   std::string save_only = "";
   int ip=1;
   int seed = 0;
@@ -61,6 +62,12 @@ int main(int argc, char* argv[])
             target_type = wire;
             ip+=1;
         }
+
+        // Use a realistic beam shape?
+        else if (std::string(argv[ip])=="--useBeamSize") {
+            do_beam = true;
+            ip+=1;
+        }        
 
         // Turn on visuals?
         // Only make this possible for small numbers of events.
@@ -140,16 +147,36 @@ int main(int argc, char* argv[])
   std::cout << "Will save outputs to " << output_filename << std::endl;
 
   // Setting up the user interface to be nice.
+  G4UIExecutive * ui = new G4UIExecutive(argc, argv);
+  G4UImanager * uiManager = G4UImanager::GetUIpointer();
+
+  // Set up the beam. Can either do point-like,
+  // for studying scattering probability of a single electron,
+  // or realistic, for studying impact of non-constant targets.
+  uiManager->ApplyCommand("/gps/particle/ e-");
+  uiManager->ApplyCommand("/gps/ene/type Mono");
+  uiManager->ApplyCommand("/gps/ene/mono 31 MeV");  
+  // Same center and direction regardless of what beam type it is
+  uiManager->ApplyCommand("/gps/pos/centre 0. 0. -2. m");
+
+  // Now we decide if we are doing point-like or a real beam
+  if (do_beam) {
+    uiManager->ApplyCommand("/gps/pos/type beam");
+    uiManager->ApplyCommand("/gps/pos/sigma_x 0.0575 cm");
+    uiManager->ApplyCommand("/gps/pos/sigma_y 0.094 cm");
+  } else {
+    uiManager->ApplyCommand("/gps/pos/type point");
+  }
+
+  // Visualisation commands - don't always want this, so make it optional
   if (do_visuals) {
-    G4UIExecutive * ui = new G4UIExecutive(argc, argv);
     G4VisManager * visManager = new G4VisExecutive();
     visManager->Initialize();
-    G4UImanager * uiManager = G4UImanager::GetUIpointer();
     
     // Running commands to display what I'm doing
     uiManager->ApplyCommand("/run/initialize");
-    //uiManager->ApplyCommand("/vis/open OGL");
-    uiManager->ApplyCommand("/vis/open HepRepFile");
+    uiManager->ApplyCommand("/vis/open OGL");
+    //uiManager->ApplyCommand("/vis/open HepRepFile");
     uiManager->ApplyCommand("/vis/viewer/set/viewpointvector 1 1 1");
     uiManager->ApplyCommand("/vis/drawVolume");
     uiManager->ApplyCommand("/vis/viewer/set/autorefresh true");

@@ -2,6 +2,7 @@
 #define __BEAM__
 #include "G4VUserPrimaryGeneratorAction.hh"
 #include "G4ParticleGun.hh"
+#include "G4GeneralParticleSource.hh"
 
 class Beam : public G4VUserPrimaryGeneratorAction{
 public:
@@ -12,7 +13,8 @@ public:
 	void GeneratePrimaries(G4Event* anEvent);
 
 private:
-	G4ParticleGun* myGun;
+	G4GeneralParticleSource* myGun;
+
 };
 
 #endif
