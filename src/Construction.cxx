@@ -50,7 +50,7 @@ G4VPhysicalVolume * Construction::Construct()
 	// Wire target:
 	} else if (m_target_type == wire) {
 		// totally tubular
-		G4double wire_half_length=2.5*CLHEP::cm;
+		G4double wire_half_length=1*CLHEP::m; // put it all across the screen so I can see where it is
 		G4double wire_radius = m_targetThickness*CLHEP::micrometer;
 		solidTarget = new G4Tubs("Target",
 					0., // inner radius
