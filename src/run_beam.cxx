@@ -153,11 +153,12 @@ int main(int argc, char* argv[])
   // Set up the beam. Can either do point-like,
   // for studying scattering probability of a single electron,
   // or realistic, for studying impact of non-constant targets.
-  uiManager->ApplyCommand("/gps/particle/ e-");
+  uiManager->ApplyCommand("/gps/particle e-");
   uiManager->ApplyCommand("/gps/ene/type Mono");
   uiManager->ApplyCommand("/gps/ene/mono 31 MeV");  
   // Same center and direction regardless of what beam type it is
-  uiManager->ApplyCommand("/gps/pos/centre 0. 0. -2. m");
+  uiManager->ApplyCommand("/gps/pos/centre 0. 0. -1. m");
+  uiManager->ApplyCommand("/gps/direction 0 0 1");
 
   // Now we decide if we are doing point-like or a real beam
   if (do_beam) {
