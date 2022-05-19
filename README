@@ -1,3 +1,10 @@
-cmake -DGeant4_DIR=$G4DIR ..
+On Kate's laptop:
+cd /opt/local/libexec/Geant4/Geant4.10.6/
+source geant4.sh
+[go back to build dir]
+export G4LEDATA="/opt/local/share/Geant4/Data/Geant4.10.6/G4EMLOW7.9"
+[above corrects a mistake in the setup script that will cause crashes]
+cmake -DGeant4_DIR=/opt/local/lib/Geant4/Geant4.10.6/Geant4-10.6.3 ..
 
-Test test
+On Cedar:
+cmake -DGeant4_DIR= /cvmfs/soft.computecanada.ca/easybuild/software/2020/avx2/Compiler/gcc9/geant4/10.06/lib64/Geant4-10.6.0/ .. 
