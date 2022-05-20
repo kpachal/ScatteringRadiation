@@ -13,6 +13,8 @@
 // GEANT includes
 #include <FTFP_BERT.hh>
 #include <QBBC.hh>
+#include <QGSP_BERT_HP.hh>
+#include <QGSP_BERT.hh>
 #include "G4RunManager.hh"
 #include "G4UImanager.hh"
 #include "G4VisManager.hh"
@@ -33,6 +35,7 @@ int main(int argc, char* argv[])
   bool do_save_only = false;
   bool do_visuals = false;
   bool do_beam = false;
+  bool high_angle_only = false;
   std::string save_only = "";
   int ip=1;
   int seed = 0;
@@ -68,6 +71,12 @@ int main(int argc, char* argv[])
             do_beam = true;
             ip+=1;
         }        
+
+        // Only save particles scattered through more than 20 degrees?
+        else if (std::string(argv[ip])=="--saveHighAngleOnly") {
+            high_angle_only = true;
+            ip+=1;
+        }
 
         // Turn on visuals?
         // Only make this possible for small numbers of events.
@@ -132,14 +141,14 @@ int main(int argc, char* argv[])
 	runManager->SetUserInitialization(new Construction(target_thickness, target_type));
 
   // Physics list
-  G4VModularPhysicsList* physicsList = new QBBC;
+  G4VModularPhysicsList* physicsList = new QGSP_BERT_HP;//QBBC;
   runManager->SetUserInitialization(physicsList);
 
   // This includes setting up the beamline
   // Send false and a blank number if we keep everything (default)
   int PDG_only = 0;
   if (do_save_only) PDG_only = particle_types[save_only];
-  runManager->SetUserInitialization(new Action(output_filename,do_save_only,PDG_only)); 
+  runManager->SetUserInitialization(new Action(output_filename,do_save_only,PDG_only,high_angle_only)); 
 
   // Initialize G4 kernel
 	runManager->Initialize();
@@ -162,9 +171,12 @@ int main(int argc, char* argv[])
 
   // Now we decide if we are doing point-like or a real beam
   if (do_beam) {
+    std::cout << "Setting non-point!" << std::endl;
     uiManager->ApplyCommand("/gps/pos/type beam");
-    uiManager->ApplyCommand("/gps/pos/sigma_x 0.0575 cm");
-    uiManager->ApplyCommand("/gps/pos/sigma_y 0.094 cm");
+    //uiManager->ApplyCommand("/gps/pos/sigma_x 0.0575 cm");
+    //uiManager->ApplyCommand("/gps/pos/sigma_y 0.094 cm");
+    uiManager->ApplyCommand("/gps/pos/sigma_x 5 cm");
+    uiManager->ApplyCommand("/gps/pos/sigma_y 5 cm");    
   } else {
     uiManager->ApplyCommand("/gps/pos/type point");
   }

@@ -13,10 +13,11 @@ class Action : public G4VUserActionInitialization {
 
 public :
 
-   Action(std::string outputFilename, bool doSaveOnly, int PDGID_only) {
+   Action(std::string outputFilename, bool doSaveOnly, int PDGID_only, bool saveHighAngleOnly) {
       m_outputFilename = outputFilename; 
       m_do_save_only = doSaveOnly;
       m_PDGID_only = PDGID_only;
+      m_save_highangle_only = saveHighAngleOnly;
    };
    
    virtual ~Action() {};
@@ -28,6 +29,7 @@ private :
    std::string m_outputFilename;
    bool m_do_save_only;
    int m_PDGID_only;
+   bool m_save_highangle_only;
 
 };
 

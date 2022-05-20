@@ -13,6 +13,7 @@ void Action::Build() const {
     SetUserAction(doOnEvent);
 
     TrackingAction * doOnTrack = new TrackingAction(doOnEvent);
+    if (m_save_highangle_only) doOnTrack->setTrackHighAngleOnly(true, 20.0); // in degrees
     SetUserAction(doOnTrack);
 
     SteppingAction * doOnStep = new SteppingAction(doOnEvent);

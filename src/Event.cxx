@@ -42,7 +42,7 @@ void EventAction::FillTrackInfo(int pdgID,
 
    // If we requested to store only one type of particle,
    // return here if this is not it.
-   if (m_do_save_only && pdgID != m_save_only) return; 
+   if (m_do_save_only && pdgID != m_save_only) return;
 
    m_pdgIDFinal.push_back(pdgID);
    m_posX.push_back(posX);
