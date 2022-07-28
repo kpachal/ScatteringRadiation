@@ -50,5 +50,6 @@ G4bool SensitiveSurface::ProcessHits(G4Step *aStep, G4TouchableHistory *ROhist)
     int cpnr=step->GetPreStepPoint()->GetTouchableHandle()->GetCopyNumber(); */  
 
     // Could save outputs from here if desired
+    return true;
 
 }
