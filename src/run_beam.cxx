@@ -28,7 +28,8 @@ int main(int argc, char* argv[])
 
   // Parse run parameters.
   long nEvents = 10000;
-  double target_thickness = 10; // thickness of foil target or diameter of wire in microns
+  double target_thickness = 1; // thickness of foil target or diameter of wire in microns
+  double beam_energy = 30.;
   // Enum defined in Construction.h
   target_options target_type = foil; // use foil target as default
   std::string output_simple = "output";
@@ -60,6 +61,14 @@ int main(int argc, char* argv[])
           } else {std::cout<<"\nNo target thickness inserted."<<std::endl; return 1;}
         }
 
+        // Beam energy
+        else if (std::string(argv[ip])=="--beamEnergy") {
+          if (ip+1<argc && std::string(argv[ip+1]).substr(0,2)!="--") {
+            beam_energy = std::stod(argv[ip+1]);
+            ip+=2;
+          } else {std::cout<<"\nNo beam energy insterted."<<std::endl; return 1;}
+        }
+
         // Diameter of a wire target
         else if (std::string(argv[ip])=="--wireTarget") {
             target_type = wire;
@@ -79,10 +88,9 @@ int main(int argc, char* argv[])
         }
 
         // Turn on visuals?
-        // Only make this possible for small numbers of events.
+        // Doesn't run events - you will do that manually in this case.
         else if (std::string(argv[ip])=="--visuals") {
-            if (nEvents <= 1000) do_visuals = true;
-            else std::cout << "Don't request visuals with this many events!" << std::endl;
+            do_visuals = true;
             ip+=1;
         }
 
@@ -123,6 +131,7 @@ int main(int argc, char* argv[])
   std::stringstream stream;
   stream << output_simple << "_" << std::setprecision(2) << target_thickness << "micron_1e" << log10(nEvents) << "events";
   //if (target_type != foil) stream << "_" << (target_type == wire ? "wire" : "gas");
+  stream << "_" << beam_energy << "MeV";
   if (do_save_only) stream << "_" << save_only;
   if (seed) stream << "_seed" << seed;
   stream << ".root";
@@ -164,7 +173,12 @@ int main(int argc, char* argv[])
   // or realistic, for studying impact of non-constant targets.
   uiManager->ApplyCommand("/gps/particle e-");
   uiManager->ApplyCommand("/gps/ene/type Mono");
-  uiManager->ApplyCommand("/gps/ene/mono 31 MeV");  
+  stream.clear();//clear any bits set
+  stream.str("");
+  stream << "/gps/ene/mono " << beam_energy << " MeV";
+  std::string energy_str = stream.str();
+  std::cout << "Setting energy with the command:\n" << energy_str << std::endl;
+  uiManager->ApplyCommand(stream.str());  
   // Same center and direction regardless of what beam type it is
   uiManager->ApplyCommand("/gps/pos/centre 0. 0. -1. m");
   uiManager->ApplyCommand("/gps/direction 0 0 1");
