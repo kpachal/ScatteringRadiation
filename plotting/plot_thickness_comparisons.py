@@ -3,7 +3,7 @@ import math
 import numpy as np
 from art.morisot_2p0 import Morisot_2p0
 import sys,os
-from openpyxl import Workbook
+#from openpyxl import Workbook
 import csv
 
 # Initialize painter
@@ -32,10 +32,13 @@ infilename = "../results_{0}micron_1e8events.root"
 useOnly = ""
 
 # Additional tag?
-tag = ""
+tag = "_original_list"
 
 # Neutron rebinning factor
 rebin_neutrons = 5
+
+# Are we doing thickness comparisons? Put here if so
+check_thicknesses = [1]
 
 def compute_rms_1D(hist) :
     sum2 = 0
@@ -62,7 +65,7 @@ particle_dict = {"eminus" : {"full" : "Electrons", "short" : "e-"},
 # Pick up theory curves for e- multiple scattering
 intheoryfile = ROOT.TFile.Open("../theory_curves.root","READ")
 theory_curves = {}
-for thickness in 1, 5, 10 :
+for thickness in check_thicknesses :
   thisdict = {}
   multiple_scattering_DCS = intheoryfile.Get("MDCS_{0}micron".format(thickness))
   thisdict["rad"] = multiple_scattering_DCS
@@ -75,11 +78,10 @@ Widths_fromTF1 = intheoryfile.Get("Widths_fromTF1")
 intheoryfile.Close()
 
 # Now get the main plots.
-compareThickness = True
-for thickness in 1, 5, 10 :
+compareThickness = (len(check_thicknesses) > 1)
+for iThickness, thickness in enumerate(check_thicknesses) :
 
   thisThickness = {}
-  iThickness = [1, 5, 10].index(thickness)
 
   thisname = infilename.format(thickness)
   print("Checking file",thisname)
@@ -216,6 +218,9 @@ for thickness in savehists.keys() :
     hist.Write()
 outfile.Close()
 
+## Ignoring the below for now
+exit(0)
+
 # Now save them into a spreadsheet version.
 # We'll do a new sheet per thickness, for ease.
 keylist = sorted(savehists.keys())
@@ -242,7 +247,7 @@ for thickness in savehists.keys() :
       safename = name[:31]
     else :
       safename = name
-    if index is 0 :
+    if index == 0 :
       ws = wb.active
       ws.title = safename
     else :

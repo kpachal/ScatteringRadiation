@@ -189,8 +189,8 @@ int main(int argc, char* argv[])
     uiManager->ApplyCommand("/gps/pos/type beam");
     //uiManager->ApplyCommand("/gps/pos/sigma_x 0.0575 cm");
     //uiManager->ApplyCommand("/gps/pos/sigma_y 0.094 cm");
-    uiManager->ApplyCommand("/gps/pos/sigma_x 5 cm");
-    uiManager->ApplyCommand("/gps/pos/sigma_y 5 cm");    
+    uiManager->ApplyCommand("/gps/pos/halfx 5 cm");
+    uiManager->ApplyCommand("/gps/pos/halfy 5 cm");     
   } else {
     uiManager->ApplyCommand("/gps/pos/type point");
   }
