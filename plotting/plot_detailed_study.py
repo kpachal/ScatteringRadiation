@@ -223,7 +223,7 @@ for normalisation in [True, False] :
     # Energy (not representative for neutrons)
     energy = infile.Get("energy_{0}".format(particle))
     energy.SetDirectory(0)
-    if normalisation : momentum.Scale(1.0/momentum.GetMaximum())
+    if normalisation and energy.GetMaximum() > 0 : energy.Scale(1.0/energy.GetMaximum())
     plot_dict["energy_{0}".format(particle)] = energy
     myPainter.drawOverlaidHistos([energy],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Energy [MeV]",ylabel="{1}umber of {0}".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"energy_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=None,ylow=None,yhigh=None,useTrueEdges=True)
 
