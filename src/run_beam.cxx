@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
             ip+=1;
         }        
 
-        // Only save particles scattered through more than 20 degrees?
+        // Only save particles scattered through more than 18 degrees?
         else if (std::string(argv[ip])=="--saveHighAngleOnly") {
             high_angle_only = true;
             ip+=1;
@@ -133,6 +133,7 @@ int main(int argc, char* argv[])
   //if (target_type != foil) stream << "_" << (target_type == wire ? "wire" : "gas");
   stream << "_" << beam_energy << "MeV";
   if (do_save_only) stream << "_" << save_only;
+  if (high_angle_only) stream << "_onlyHighAngle";
   if (seed) stream << "_seed" << seed;
   stream << ".root";
   std::string output_filename = stream.str();

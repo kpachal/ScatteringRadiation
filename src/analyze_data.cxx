@@ -375,9 +375,9 @@ int main(int argc, char* argv[]) {
             return angles;}, {name});
 
         // Now make histograms from each.
-        auto particle_energy = frame_withQuantities.Histo1D({("energy_" + name).c_str(),("energy_" + name).c_str(),200,0,100},("energy_" + name).c_str());
+        auto particle_energy = frame_withQuantities.Histo1D({("energy_" + name).c_str(),("energy_" + name).c_str(),300,0,60},("energy_" + name).c_str());
         outputs.push_back(particle_energy);
-        auto particle_momentum = frame_withQuantities.Histo1D({("momentum_" + name).c_str(),("momentum_" + name).c_str(),400,0,100},("momentum_" + name).c_str());
+        auto particle_momentum = frame_withQuantities.Histo1D({("momentum_" + name).c_str(),("momentum_" + name).c_str(),300,0,60},("momentum_" + name).c_str());
         outputs.push_back(particle_momentum); 
         auto particle_mom_x = frame_withQuantities.Histo1D({("momentum_x_" + name).c_str(),("momentum_x_" + name).c_str(),400,-50,50},("momentum_x_" + name).c_str());      
         outputs.push_back(particle_mom_x);
@@ -411,12 +411,12 @@ int main(int argc, char* argv[]) {
         auto particle_energy_in_em = down_selected.Define(("e_in_em_"+name).c_str(),[](RVec<double> energy, RVec<int> in_em)
                 {   return energy[in_em];
         }, {("energy_" + name).c_str(),("in_em_" + name).c_str()} )
-                .Histo1D({("energy_in_em_" + name).c_str(),("energy_in_em_" + name).c_str(),200,0,100},("e_in_em_"+name).c_str());
+                .Histo1D({("energy_in_em_" + name).c_str(),("energy_in_em_" + name).c_str(),300,0,60},("e_in_em_"+name).c_str());
         outputs.push_back(particle_energy_in_em);
         auto particle_angle_in_em = down_selected.Define(("ang_in_em_"+name).c_str(), [](RVec<double> angle, RVec<int> in_em)
                                                          {   return angle[in_em];
                                                  }, {("angle_polar_" + name).c_str(),("in_em_" + name).c_str()} )
-                .Histo1D({("angle_in_em_" + name).c_str(),("angle_in_em_" + name).c_str(),180,0,180},("ang_in_em_"+name).c_str());
+                .Histo1D({("angle_in_em_" + name).c_str(),("angle_in_em_" + name).c_str(),3140,0,3.14},("ang_in_em_"+name).c_str());
         outputs.push_back(particle_angle_in_em);
         // Electrons in e+ spectrometer (full in phi, +/- 1.5 degrees in theta)
         auto particle_energy_in_ep = down_selected.Define(("e_in_ep_"+name).c_str(),[](RVec<double> energy, RVec<int> in_ep)
@@ -427,10 +427,9 @@ int main(int argc, char* argv[]) {
         auto particle_angle_in_ep = down_selected.Define(("ang_in_ep_"+name).c_str(), [](RVec<double> angle, RVec<int> in_ep)
                                                          {   return angle[in_ep];
                                                  }, {("angle_polar_" + name).c_str(),("in_ep_" + name).c_str()} )
-                .Histo1D({("angle_in_ep_" + name).c_str(),("angle_in_ep_" + name).c_str(),180,0,180},("ang_in_ep_"+name).c_str());
+                .Histo1D({("angle_in_ep_" + name).c_str(),("angle_in_ep_" + name).c_str(),3140,0,3.14},("ang_in_ep_"+name).c_str());
         outputs.push_back(particle_angle_in_ep);
         
-        // TODO: use this like neutron selector to activate only keeping hits in spectrometers?
     }
 
     // Now: evaluate.
