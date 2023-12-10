@@ -45,7 +45,7 @@ G4VPhysicalVolume * Construction::Construct()
 		// such a square
 		G4double target_sizeX=2.5*CLHEP::cm;
 		G4double target_sizeY=2.5*CLHEP::cm;
-		G4double target_sizeZ=m_targetThickness*CLHEP::micrometer;
+		G4double target_sizeZ=0.5*m_targetThickness*CLHEP::micrometer;
 		solidTarget = new G4Box("Target",target_sizeX, target_sizeY, target_sizeZ);
 	// Wire target:
 	} else if (m_target_type == wire) {
