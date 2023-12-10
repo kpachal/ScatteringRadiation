@@ -2,7 +2,7 @@
 #include <string>
 #include <list>
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 #include <regex>
 
 #include <TH1I.h>
@@ -14,6 +14,7 @@
 #include <ROOT/RDataFrame.hxx>
 #include <TGraph.h>
 #include <TCanvas.h>
+#include <TVectorD.h>
 
 // List of known processes (100M events)
 // 1091 2002 2003 2005 2010 2011 2012 2013 2014 4121
@@ -267,6 +268,14 @@ int main(int argc, char* argv[]) {
     std::vector<ROOT::RDF::RResultPtr<TH2D> > outputs_2D;
     std::vector<ROOT::RDF::RResultPtr<TH1D> > outputs_to_norm;
 
+    // Save RMS of electrons for Aveen
+    std::vector<ROOT::RDF::RResultPtr<double> > RMS_numerator;
+    std::vector<ROOT::RDF::RResultPtr<unsigned long> > RMS_denominator;
+    std::vector<ROOT::RDF::RResultPtr<double> > RMS_deg_numerator;
+    std::vector<ROOT::RDF::RResultPtr<unsigned long> > RMS_deg_denominator;
+    // this is clumsy, but just in case anything is saved out of order ...
+    std::vector<std::string> particle_names;
+
     // Make general histograms
     auto hist_fullTypes = final_frame.Histo1D("fullType"); outputs.push_back(hist_fullTypes);
     auto hist_nInteresting = final_frame.Histo1D("nInteresting"); outputs.push_back(hist_nInteresting);
@@ -275,6 +284,8 @@ int main(int argc, char* argv[]) {
 
     // Make separate plots by final state particle
     for (const auto& [name, pdgID] : particle_types) {
+
+        particle_names.push_back(name);
 
         // Just get events with these particles, in case I want to count them at some point
         //auto frame_theseparticles = final_frame.Filter([](std::vector<particle> particles)
@@ -303,6 +314,16 @@ int main(int argc, char* argv[]) {
                     angles.push_back(angle);
                 }
                 return angles;}, {name})
+        .Define(("n_angles_" + name).c_str(),
+            [](RVec<double> angles)
+            { return angles.size(); }, {("angle_polar_" + name).c_str()})
+        .Define(("sum2_angles_" + name).c_str(),
+            [](RVec<double> angles)
+            {   double sum2_angles_deg = 0;
+                for (auto a : angles) {
+                    sum2_angles_deg += pow(a,2.0);
+                }
+            return sum2_angles_deg;}, {("angle_polar_" + name).c_str()})
         // Individual momentum components
         .Define(("momentum_x_" + name).c_str(),
             [](RVec<particle> particles)
@@ -372,7 +393,27 @@ int main(int argc, char* argv[]) {
                     // Convert angle to degrees
                     angles.push_back(angle*57.2958);
                 }
-            return angles;}, {name});
+            return angles;}, {name})
+        .Define(("n_angles_deg_" + name).c_str(),
+            [](RVec<double> angles)
+            { return angles.size(); }, {("angle_polar_deg_" + name).c_str()})
+        .Define(("sum2_angles_deg_" + name).c_str(),
+            [](RVec<double> angles)
+            {   double sum2_angles_deg = 0;
+                for (auto a : angles) {
+                    sum2_angles_deg += pow(a,2.0);
+                }
+            return sum2_angles_deg;}, {("angle_polar_deg_" + name).c_str()});
+
+        // Calculate RMS of polar angles.
+        auto rms_numerator = frame_withQuantities.Sum<double>(("sum2_angles_"+name).c_str());
+        auto rms_denominator = frame_withQuantities.Sum<unsigned long>(("n_angles_"+name).c_str());
+        auto rms_deg_numerator = frame_withQuantities.Sum<double>(("sum2_angles_deg_"+name).c_str());
+        auto rms_deg_denominator = frame_withQuantities.Sum<unsigned long>(("n_angles_deg_"+name).c_str());
+        RMS_numerator.push_back(rms_numerator);
+        RMS_denominator.push_back(rms_denominator);
+        RMS_deg_numerator.push_back(rms_deg_numerator);
+        RMS_deg_denominator.push_back(rms_deg_denominator);
 
         // Now make histograms from each.
         auto particle_energy = frame_withQuantities.Histo1D({("energy_" + name).c_str(),("energy_" + name).c_str(),300,0,60},("energy_" + name).c_str());
@@ -460,6 +501,18 @@ int main(int argc, char* argv[]) {
         if (thisname.Contains("_deg_")) radians = false;
         TH1D polar_scattering_norm = normalise_solid_angle(&hist.GetValue(),radians);
         polar_scattering_norm.Write();
+    }
+
+    // Write RMS values
+    for (int i=0; i<RMS_numerator.size(); i++) {
+        double rms = sqrt(RMS_numerator.at(i).GetValue()/RMS_denominator.at(i).GetValue());
+        double rms_deg = sqrt(RMS_deg_numerator.at(i).GetValue()/RMS_deg_denominator.at(i).GetValue());
+        TVectorD v_rms(1);
+        v_rms[0] = rms;
+        v_rms.Write(Form("RMS_polar_angle_%s",particle_names.at(i).c_str()));
+        TVectorD v_rms_deg(1);
+        v_rms_deg[0] = rms_deg;
+        v_rms_deg.Write(Form("RMS_polar_angle_deg_%s",particle_names.at(i).c_str()));
     }
 
     output_file->Close();
