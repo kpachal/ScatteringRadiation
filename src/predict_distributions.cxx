@@ -29,9 +29,15 @@ int main(int argc, char* argv[]) {
    std::vector<TF1*> functions;
    std::vector<double> integrals;
    std::vector<std::pair<double,double> > est_widths;
+   std::vector<double> map_thickness;
+   std::vector<double> map_energy;
    for (auto thickness : thicknesses) {
         for (auto energy : energies) {
             for (bool isDegrees : {true, false}) {
+
+                // Basically for tracking into TVectors later
+                map_thickness.push_back(thickness);
+                map_energy.push_back(energy);
 
                 // Moliere multiple scattering cross sections
                 // Electron beam of specified energy in MeV on foil of given thickness
@@ -42,7 +48,7 @@ int main(int argc, char* argv[]) {
                 // Only going up to 1 radian/90 degrees - seems weird at larger angles
                 double limit_low = isDegrees ? 0.5 : 0.001;
                 double limit_high = isDegrees ? 45 : 1.0;
-                TString funcname = Form("MDCS_%imicron_%iMeV",thickness,energy);
+                TString funcname = Form("MDCS_%imicron_%iMeV",thickness,int(energy));
                 if (isDegrees) funcname += "_deg";
                 TF1 * MDCS = new TF1(funcname,func_MDCS,limit_low,limit_high,1); 
                 // Display purposes
@@ -50,6 +56,7 @@ int main(int argc, char* argv[]) {
 
                 // Now to get good normalisation, need to retrieve what this should be compared to
                 // and fit normalisation parameter.
+                std::cout << "Energy, int(energy): " << energy << " " << int(energy) << std::endl;
                 TString infilename = Form("results_%imicron_1e7events_%iMeV.root",thickness,int(energy));
                 std::cout << "Opening input file " << infilename << std::endl;
                 TFile infile(infilename,"READ");
@@ -96,12 +103,12 @@ int main(int argc, char* argv[]) {
    }
 
    // Format TVectors
-   TVectorD integrals_MDCS(3);
+   TVectorD integrals_MDCS(integrals.size());
    for (unsigned int index=0; index<integrals.size(); index++) integrals_MDCS[index] = integrals.at(index);
-   TVectorD widths_est(3);
-   TVectorD widths_fromTF1(3);
+   TVectorD widths_est(integrals.size());
+   TVectorD widths_fromTF1(integrals.size());
    for (unsigned int index=0; index<est_widths.size(); index++) {
-       std::cout << "Width " << thicknesses.at(index) << ":" << std::endl;
+       std::cout << "Width " << map_thickness.at(index) << ", energy " << map_energy.at(index) << ":" << std::endl;
        std::cout << "From TDR forumla: " << est_widths.at(index).first << std::endl;
        std::cout << "From TF1 itself: " << est_widths.at(index).second << std::endl;
        widths_est[index] = est_widths.at(index).first;

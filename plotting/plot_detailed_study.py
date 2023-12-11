@@ -14,16 +14,11 @@ myPainter.CME = -1
 
 # Prediction for electron destinations (multiple scattering): goudsmit-saunderson
 
-# The file to look at: just one
-infilename = "../results_1micron_1e8events.root"
-
-# For getting theory predictions: what foil thickness?
-thickness = 1
-
-# Where plots will go: default is subdir based on input file name
-plotdir = "plots/{0}/".format(infilename.split("/")[-1].replace(".root",""))
-#if not os.path.exists(plotdir) :
-#  os.path.(plotdir)
+# The file(s) to look at:
+# Can use up to whatever matches contents of theory curve file.
+thicknesses = [1]
+energies = [5.,10.,15.,20.,25.,30.,31.,32.]
+infiletemplate = "../results_{0}micron_1e7events_{1}MeV.root"
 
 # Only one particle present in input file? If so denote here
 #useOnly = "neutron"
@@ -94,176 +89,245 @@ particle_dict = {"eminus" : {"full" : "electrons", "short" : "e-"},
 # Pick up theory curves for e- multiple scattering
 intheoryfile = ROOT.TFile.Open("../theory_curves.root","READ")
 theory_curves = {}
-for particle in ["eminus"] :
-  thisdict = {}
-  multiple_scattering_DCS = intheoryfile.Get("MDCS_{0}micron".format(thickness))
-  thisdict["rad"] = multiple_scattering_DCS
-  multiple_scattering_DCS_deg = intheoryfile.Get("MDCS_{0}micron_deg".format(thickness))
-  thisdict["deg"] = multiple_scattering_DCS_deg
-  theory_curves[particle] = thisdict
+for thickness in thicknesses :
+  theory_curves[thickness] = {}
+  for energy in energies :
+    theory_curves[thickness][energy] = {}
+    for particle in ["eminus"] :
+      thisdict = {}
+      multiple_scattering_DCS = intheoryfile.Get("MDCS_{0}micron_{1}MeV".format(thickness,int(energy)))
+      multiple_scattering_DCS.Print()
+      thisdict["rad"] = multiple_scattering_DCS
+      multiple_scattering_DCS_deg = intheoryfile.Get("MDCS_{0}micron_{1}MeV_deg".format(thickness,int(energy)))
+      thisdict["deg"] = multiple_scattering_DCS_deg
+      theory_curves[thickness][energy][particle] = thisdict
 integrals_multiple_scattering = intheoryfile.Get("integrals_MDCS")
 Widths_fromTDRFormula = intheoryfile.Get("Widths_fromTDRFormula")
 Widths_fromTF1 = intheoryfile.Get("Widths_fromTF1")
 intheoryfile.Close()
 
 # Now get the main plots.
+# Draw if desired
+drawAll = False
+for thickness in thicknesses :
+  savehists[thickness] = {}
+  print("Starting thickness",thickness)
+  for energy in energies :
+    print("Starting energy",energy)
+    savehists[thickness][energy] = {}
 
-plot_dict = {}
+    infilename = infiletemplate.format(thickness,int(energy))
 
-infile = ROOT.TFile.Open(infilename)
+    # Where plots will go: default is subdir based on input file name
+    plotdir = "plots/{0}/".format(infilename.split("/")[-1].replace(".root",""))
+    if not os.path.exists(plotdir) :
+      os.mkdir(plotdir)
+    print("Plot dir:",plotdir)
 
-for normalisation in [True, False] :
+    plot_dict = {}
 
-  for particle in ["eminus", "eplus", "gamma", "neutron"] :
+    infile = ROOT.TFile.Open(infilename)
 
-    if (useOnly and particle not in useOnly) : 
-      continue
+    for normalisation in [True, False] :
+      print("Starting normalisation",normalisation)
 
-    if normalisation :
-      extratag = "_relative"
-    else :
-      extratag = ""
+      for particle in ["eminus", "eplus", "gamma", "neutron"] :
+        print("Starting particle",particle)
+        savehists[thickness][energy][particle] = {}
 
-    particle_full = particle_dict[particle]["full"]
-    particle_short = particle_dict[particle]["short"]
+        if particle in theory_curves[thickness][energy].keys() :
+          these_theory = theory_curves[thickness][energy][particle]
 
-    # Normalised scattering angle
-    polar_scattering = infile.Get("angle_polar_{0}".format(particle))
-    polar_scattering.SetDirectory(0)
-    if normalisation : polar_scattering.Scale(1.0/polar_scattering.GetMaximum())
-    # For electrons: in what degree radius is 3.7 sigma contained?
-    if particle == "eminus" :
-      total = polar_scattering.Integral()
-      sofar = 0
-      for bin in range(1,polar_scattering.GetNbinsX()) :
-        sofar += polar_scattering.GetBinContent(bin)
-        if sofar/total > 0.986 :
-          print("Upper edge is",polar_scattering.GetBinLowEdge(bin+1),"and percent is",sofar/total)
-          break
-    polar_scattering_norm = infile.Get("angle_polar_{0}_norm".format(particle))
-    polar_scattering_norm.SetDirectory(0)
-    if normalisation : polar_scattering_norm.Scale(1.0/polar_scattering_norm.GetMaximum())
-    polar_scattering_norm.SetName(polar_scattering_norm.GetName()+"_{0}micron".format(thickness))
+        if (useOnly and particle not in useOnly) : 
+          continue
 
-    # Normalised scattering angle, axis in deg
-    polar_scattering_deg = infile.Get("angle_polar_deg_{0}".format(particle))
-    polar_scattering_deg.SetDirectory(0)
-    if normalisation : polar_scattering_deg.Scale(1.0/polar_scattering_deg.GetMaximum())
-    # For electrons: in what degree radius is 3.7 sigma contained?
-    if particle == "eminus" :
-      total = polar_scattering_deg.Integral()
-      sofar = 0
-      for bin in range(1,polar_scattering_deg.GetNbinsX()) :
-        sofar += polar_scattering_deg.GetBinContent(bin)
-        if sofar/total > 0.986 :
-          print("Upper edge is",polar_scattering_deg.GetBinLowEdge(bin+1),"and percent is",sofar/total)
-          break    
-    polar_scattering_deg_norm = infile.Get("angle_polar_deg_{0}_norm".format(particle))
-    polar_scattering_deg_norm.SetDirectory(0)
-    if normalisation : polar_scattering_deg_norm.Scale(1.0/polar_scattering_deg_norm.GetMaximum())
-    polar_scattering_deg_norm.SetName(polar_scattering_deg_norm.GetName()+"_{0}micron".format(thickness))
+        if normalisation :
+          extratag = "_relative"
+        else :
+          extratag = ""
 
-    # Rebin neutrons: low stats,
-    # but only after saving raw version so plots stack better
-    # if ("neutron" in particle) :
-    #     polar_scattering.Rebin(rebin_neutrons)
-    #     polar_scattering_norm.Rebin(rebin_neutrons)
-    #     polar_scattering_deg.Rebin(rebin_neutrons)
-    #     polar_scattering_deg_norm.Rebin(rebin_neutrons)    
+        particle_full = particle_dict[particle]["full"]
+        particle_short = particle_dict[particle]["short"]
 
-    # Save
-    plot_dict["polar_scattering_{0}".format(particle)] = polar_scattering
-    plot_dict["polar_scattering_norm_{0}".format(particle)] = polar_scattering_norm    
-    plot_dict["polar_scattering_deg_{0}".format(particle)] = polar_scattering_deg
-    plot_dict["polar_scattering_deg_norm_{0}".format(particle)] = polar_scattering_deg_norm
+        ## Get and store plots.
 
-    # Make individual plots by thickness
-    # Radians, unnormalised
-    yhigh = None
-    if "neutron" in particle :
-        yhigh = 10
+        # Normalised scattering angle
+        polar_scattering = infile.Get("angle_polar_{0}".format(particle))
+        polar_scattering.SetDirectory(0)
+        #polar_scattering.Rebin(4)
+        if normalisation and polar_scattering.GetMaximum() > 0: 
+          polar_scattering.Scale(1.0/polar_scattering.GetMaximum())
+        # For electrons: in what degree radius is 3.7 sigma contained?
+        if particle == "eminus" :
+          total = polar_scattering.Integral()
+          sofar = 0
+          for bin in range(1,polar_scattering.GetNbinsX()) :
+            sofar += polar_scattering.GetBinContent(bin)
+            if sofar/total > 0.986 :
+              print("Upper edge is",polar_scattering.GetBinLowEdge(bin+1),"and percent is",sofar/total)
+              break
+        polar_scattering_norm = infile.Get("angle_polar_{0}_norm".format(particle))
+        polar_scattering_norm.SetDirectory(0)
+        #polar_scattering_norm.Rebin(4)
+        if normalisation and polar_scattering_norm.GetMaximum() > 0: 
+          polar_scattering_norm.Scale(1.0/polar_scattering_norm.GetMaximum())
+        polar_scattering_norm.SetName(polar_scattering_norm.GetName()+"_{0}micron".format(thickness))
 
-    myPainter.drawOverlaidHistos([polar_scattering],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [rad]",ylabel="{1}umber of {0} [1/rad]".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"scattering_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=3.14,ylow=None,yhigh=yhigh,useTrueEdges=True)
-    myPainter.drawOverlaidHistos([polar_scattering],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [rad]",ylabel="{1}umber of {0} [1/rad]".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"scattering_{0}_{1}microns{2}_zoom".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1.0,ylow=None,yhigh=yhigh,useTrueEdges=True)    
-    # Radians, normalised
-    myPainter.drawOverlaidHistos([polar_scattering_norm],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [rad]",ylabel="{1}umber of {0} [1/str]".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"scattering_norm_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=3.14,ylow=None,yhigh=yhigh,useTrueEdges=True)
-    myPainter.drawOverlaidHistos([polar_scattering_norm],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [rad]",ylabel="{1}umber of {0} [1/str]".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"scattering_norm_{0}_{1}microns{2}_zoom".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1.0,ylow=None,yhigh=yhigh,useTrueEdges=True)
-    # Degrees, unnormalised
-    myPainter.drawOverlaidHistos([polar_scattering_deg],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [deg]",ylabel="{0} number of {1}".format(("Relative" if normalisation else "Total"), particle_full),plotname=plotdir+"scattering_deg_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=180,ylow=None,yhigh=yhigh,useTrueEdges=True)
-    myPainter.drawOverlaidHistos([polar_scattering_deg],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [deg]",ylabel="{0} number of {1}".format(("Relative" if normalisation else "Total"), particle_full),plotname=plotdir+"scattering_deg_{0}_{1}microns{2}_zoom".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=40,ylow=None,yhigh=yhigh,useTrueEdges=True)   
-    # Degrees, normalised
-    myPainter.drawOverlaidHistos([polar_scattering_deg_norm],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [deg]",ylabel="{1}umber of {0} [1/deg^{2}]".format(particle_full,("Relative n" if normalisation else "N"),"{2}"),plotname=plotdir+"scattering_deg_norm_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=180,ylow=None,yhigh=yhigh,useTrueEdges=True)
-    myPainter.drawOverlaidHistos([polar_scattering_deg_norm],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [deg]",ylabel="{1}umber of {0} [1/deg^{2}]".format(particle_full,("Relative n" if normalisation else "N"),"{2}"),plotname=plotdir+"scattering_deg_norm_{0}_{1}microns{2}_zoom".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=40,ylow=None,yhigh=yhigh,useTrueEdges=True) 
+        # Normalised scattering angle, axis in deg
+        polar_scattering_deg = infile.Get("angle_polar_deg_{0}".format(particle))
+        polar_scattering_deg.SetDirectory(0)
+        if normalisation and polar_scattering_deg.GetMaximum() > 0 : 
+          polar_scattering_deg.Scale(1.0/polar_scattering_deg.GetMaximum())
+        # For electrons: in what degree radius is 3.7 sigma contained?
+        if particle == "eminus" :
+          total = polar_scattering_deg.Integral()
+          sofar = 0
+          for bin in range(1,polar_scattering_deg.GetNbinsX()) :
+            sofar += polar_scattering_deg.GetBinContent(bin)
+            if sofar/total > 0.986 :
+              print("Upper edge is",polar_scattering_deg.GetBinLowEdge(bin+1),"and percent is",sofar/total)
+              break    
+        polar_scattering_deg_norm = infile.Get("angle_polar_deg_{0}_norm".format(particle))
+        polar_scattering_deg_norm.SetDirectory(0)
+        if normalisation and polar_scattering_deg_norm.GetMaximum() > 0 : 
+          polar_scattering_deg_norm.Scale(1.0/polar_scattering_deg_norm.GetMaximum())
+        polar_scattering_deg_norm.SetName(polar_scattering_deg_norm.GetName()+"_{0}micron".format(thickness))
 
-    # Now normalize to match theory curves and plot.
-    # Only this if e-
-    # Currently only good for non-normalised. examine for otherwise.
-    if "eminus" in particle and not normalisation :
-        # Should already be fitted to the distribution
-        rad_DCS = theory_curves[particle]["rad"]
-        myPainter.drawHistsWithTF1s([polar_scattering_norm],[rad_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [rad.]",ylabel="Arbitrary units",plotname=plotdir+"scattering_w_theory_{0}microns".format(thickness)+tag,doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1.0,ylow=None,yhigh=1e3)
-        deg_DCS = theory_curves[particle]["deg"]
-        myPainter.drawHistsWithTF1s([polar_scattering_deg_norm],[deg_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [deg.]",ylabel="Arbitrary units",plotname=plotdir+"scattering_w_theory_deg_{0}microns".format(thickness)+tag,doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=90.,ylow=None,yhigh=1e3)            
+        # Rebin neutrons: low stats,
+        # but only after saving raw version so plots stack better
+        # if ("neutron" in particle) :
+        #     polar_scattering.Rebin(rebin_neutrons)
+        #     polar_scattering_norm.Rebin(rebin_neutrons)
+        #     polar_scattering_deg.Rebin(rebin_neutrons)
+        #     polar_scattering_deg_norm.Rebin(rebin_neutrons)    
 
-    # Save positions and momenta
-    for histname in ["momentum_x_{0}".format(particle), "momentum_y_{0}".format(particle), "momentum_z_{0}".format(particle), "position_x_{0}".format(particle), "position_y_{0}".format(particle), "position_z_{0}".format(particle)] :
-        thishist = infile.Get(histname)
-        thishist.SetDirectory(0)
-        if normalisation : thishist.Scale(1.0/thishist.GetMaximum())
-        plot_dict[histname] = thishist
+        # Save
+        plot_dict["polar_scattering_{0}".format(particle)] = polar_scattering
+        plot_dict["polar_scattering_norm_{0}".format(particle)] = polar_scattering_norm    
+        plot_dict["polar_scattering_deg_{0}".format(particle)] = polar_scattering_deg
+        plot_dict["polar_scattering_deg_norm_{0}".format(particle)] = polar_scattering_deg_norm
 
-    # p
-    momentum = infile.Get("momentum_{0}".format(particle))
-    momentum.SetDirectory(0)
-    if normalisation : momentum.Scale(1.0/momentum.GetMaximum())
-    #if "neutron" in particle : momentum.Rebin(rebin_neutrons)
-    plot_dict["momentum_{0}".format(particle)] = momentum
-    myPainter.drawOverlaidHistos([momentum],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Momentum [MeV]",ylabel="{1}umber of {0}".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"momentum_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=None,ylow=None,yhigh=None,useTrueEdges=True)
+        # Save positions and momenta
+        for histname in ["momentum_x_{0}".format(particle), "momentum_y_{0}".format(particle), "momentum_z_{0}".format(particle), "position_x_{0}".format(particle), "position_y_{0}".format(particle), "position_z_{0}".format(particle)] :
+            thishist = infile.Get(histname)
+            thishist.SetDirectory(0)
+            if normalisation and thishist.GetMaximum() > 0 : 
+              thishist.Scale(1.0/thishist.GetMaximum())
+            plot_dict[histname] = thishist
 
-    # Energy (not representative for neutrons)
-    energy = infile.Get("energy_{0}".format(particle))
-    energy.SetDirectory(0)
-    if normalisation and energy.GetMaximum() > 0 : energy.Scale(1.0/energy.GetMaximum())
-    plot_dict["energy_{0}".format(particle)] = energy
-    myPainter.drawOverlaidHistos([energy],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Energy [MeV]",ylabel="{1}umber of {0}".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"energy_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=None,ylow=None,yhigh=None,useTrueEdges=True)
+        # p
+        momentum = infile.Get("momentum_{0}".format(particle))
+        momentum.SetDirectory(0)
+        if normalisation and momentum.GetMaximum() > 0 : momentum.Scale(1.0/momentum.GetMaximum())
+        #if "neutron" in particle : momentum.Rebin(rebin_neutrons)
+        plot_dict["momentum_{0}".format(particle)] = momentum
 
-    # Collect and save 2d histograms
-    momentum_2d = infile.Get("momentum_xy_{0}".format(particle))
-    momentum_2d.SetDirectory(0)
-    if normalisation : momentum_2d.Scale(1.0/momentum_2d.GetMaximum())
-    plot_dict["momentum_xy_{0}".format(particle)] = momentum_2d
-    position_2d = infile.Get("position_xy_{0}".format(particle))
-    position_2d.SetDirectory(0)
-    if normalisation : position_2d.Scale(1.0/position_2d.GetMaximum())
-    plot_dict["position_xy_{0}".format(particle)] = position_2d
+        # Energy (not representative for neutrons)
+        h_energy = infile.Get("energy_{0}".format(particle))
+        h_energy.SetDirectory(0)
+        if normalisation and h_energy.GetMaximum() > 0 : h_energy.Scale(1.0/h_energy.GetMaximum())
+        plot_dict["energy_{0}".format(particle)] = h_energy
 
-    # Plot for visual fun
-    myPainter.draw2DHist(momentum_2d,plotdir+"momentum_xy_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,"px [MeV]",-30,30,"py [MeV]",-30,30,particle_full,logz=True)
-    myPainter.draw2DHist(position_2d,plotdir+"position_xy_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,"x [mm]",-1000,1000,"y [mm]",-1000,1000,particle_full,logz=True)
+        # Collect and save 2d histograms
+        momentum_2d = infile.Get("momentum_xy_{0}".format(particle))
+        momentum_2d.SetDirectory(0)
+        if normalisation and momentum_2d.GetMaximum() > 0 : momentum_2d.Scale(1.0/momentum_2d.GetMaximum())
+        plot_dict["momentum_xy_{0}".format(particle)] = momentum_2d
+        position_2d = infile.Get("position_xy_{0}".format(particle))
+        position_2d.SetDirectory(0)
+        if normalisation and position_2d.GetMaximum() > 0 : position_2d.Scale(1.0/position_2d.GetMaximum())
+        plot_dict["position_xy_{0}".format(particle)] = position_2d
 
-  savehists[particle] = plot_dict
+        savehists[thickness][energy][particle] = plot_dict
 
-# Make stacks of output particles within thickness. Only if doing all particles
-if not useOnly :
-  to_stack = [plot_dict["polar_scattering_norm_neutron"],plot_dict["polar_scattering_norm_eplus"],plot_dict["polar_scattering_norm_gamma"],plot_dict["polar_scattering_norm_eminus"]]
-  myPainter.drawStackedHistos(to_stack,data=None,signal_list=None,stack_labels=["Neutrons","Positrons","Photons","Electrons"],data_label="",xlabel="Polar angle [rad]",ylabel="Norm. particles per rad^{2}",plotname=plotdir+"stacked_particles_norm_{0}microns".format(thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1,ylow=None,yhigh=None)
+        ## Actually plot them
+        if drawAll :
 
-  to_stack = [plot_dict["polar_scattering_neutron"],plot_dict["polar_scattering_eplus"],plot_dict["polar_scattering_gamma"],plot_dict["polar_scattering_eminus"]]
-  myPainter.drawStackedHistos(to_stack,data=None,signal_list=None,stack_labels=["Neutrons","Positrons","Photons","Electrons"],data_label="",xlabel="Polar angle [rad]",ylabel="Total particles",plotname=plotdir+"stacked_particles_{0}microns".format(thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1,ylow=None,yhigh=None)
+          # Make individual plots by thickness
+          # Radians, unnormalised
+          yhigh = None
+          if "neutron" in particle :
+              yhigh = 10
 
-  to_stack = [plot_dict["polar_scattering_deg_norm_neutron"],plot_dict["polar_scattering_deg_norm_eplus"],plot_dict["polar_scattering_deg_norm_gamma"],plot_dict["polar_scattering_deg_norm_eminus"]]
-  myPainter.drawStackedHistos(to_stack,data=None,signal_list=None,stack_labels=["Neutrons","Positrons","Photons","Electrons"],data_label="",xlabel="Polar angle [deg]",ylabel="Norm. particles per deg^{2}",plotname=plotdir+"stacked_particles_deg_norm_{0}microns".format(thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=90,ylow=None,yhigh=None)
+          myPainter.drawOverlaidHistos([polar_scattering],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [rad]",ylabel="{1}umber of {0} [1/rad]".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"scattering_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=3.14,ylow=None,yhigh=yhigh,useTrueEdges=True)
+          myPainter.drawOverlaidHistos([polar_scattering],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [rad]",ylabel="{1}umber of {0} [1/rad]".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"scattering_{0}_{1}microns{2}_zoom".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=0.7,ylow=None,yhigh=yhigh,useTrueEdges=True)    
+          # Radians, normalised
+          myPainter.drawOverlaidHistos([polar_scattering_norm],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [rad]",ylabel="{1}umber of {0} [1/str]".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"scattering_norm_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=3.14,ylow=None,yhigh=yhigh,useTrueEdges=True)
+          myPainter.drawOverlaidHistos([polar_scattering_norm],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [rad]",ylabel="{1}umber of {0} [1/str]".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"scattering_norm_{0}_{1}microns{2}_zoom".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=0.7,ylow=None,yhigh=yhigh,useTrueEdges=True)
+          # Degrees, unnormalised
+          myPainter.drawOverlaidHistos([polar_scattering_deg],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [deg]",ylabel="{0} number of {1}".format(("Relative" if normalisation else "Total"), particle_full),plotname=plotdir+"scattering_deg_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=180,ylow=None,yhigh=yhigh,useTrueEdges=True)
+          myPainter.drawOverlaidHistos([polar_scattering_deg],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [deg]",ylabel="{0} number of {1}".format(("Relative" if normalisation else "Total"), particle_full),plotname=plotdir+"scattering_deg_{0}_{1}microns{2}_zoom".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=40,ylow=None,yhigh=yhigh,useTrueEdges=True)   
+          # Degrees, normalised
+          myPainter.drawOverlaidHistos([polar_scattering_deg_norm],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [deg]",ylabel="{1}umber of {0} [1/deg^{2}]".format(particle_full,("Relative n" if normalisation else "N"),"{2}"),plotname=plotdir+"scattering_deg_norm_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=180,ylow=None,yhigh=yhigh,useTrueEdges=True)
+          myPainter.drawOverlaidHistos([polar_scattering_deg_norm],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Polar angle [deg]",ylabel="{1}umber of {0} [1/deg^{2}]".format(particle_full,("Relative n" if normalisation else "N"),"{2}"),plotname=plotdir+"scattering_deg_norm_{0}_{1}microns{2}_zoom".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=40,ylow=None,yhigh=yhigh,useTrueEdges=True) 
 
-  to_stack = [plot_dict["polar_scattering_deg_neutron"],plot_dict["polar_scattering_deg_eplus"],plot_dict["polar_scattering_deg_gamma"],plot_dict["polar_scattering_deg_eminus"]]
-  littleDrawStack(to_stack,data=None,signal_list=None,stack_labels=["Neutrons","Positrons","Photons","Electrons"],data_label="",xlabel="Polar angle [deg]",ylabel="Total particles",plotname=plotdir+"stacked_particles_deg_{0}microns".format(thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xl=0,xh=90,ylow=None,yhigh=None)
+          # Now normalize to match theory curves and plot.
+          # Only this if e-
+          # Currently only good for non-normalised. examine for otherwise.
+          if "eminus" in particle and not normalisation :
+              # Should already be fitted to the distribution
+              rad_DCS = these_theory["rad"]
+              myPainter.drawHistsWithTF1s([polar_scattering_norm],[rad_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [rad.]",ylabel="Arbitrary units",plotname=plotdir+"scattering_w_theory_{0}microns".format(thickness)+tag,doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=0.7,ylow=None,yhigh=1e3)
+              deg_DCS = these_theory["deg"]
+              myPainter.drawHistsWithTF1s([polar_scattering_deg_norm],[deg_DCS],as_data=False,match_colours=True,hist_labels=["Geant4 e-"],func_labels=["Moliere DCS"],xlabel="Polar scattering angle [deg.]",ylabel="Arbitrary units",plotname=plotdir+"scattering_w_theory_deg_{0}microns".format(thickness)+tag,doRatios=False,ratioName="",doErrors=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=40.,ylow=None,yhigh=1e3)
 
-# Close input file
-infile.Close()
+          # p, E, etc
+          myPainter.drawOverlaidHistos([momentum],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Momentum [MeV]",ylabel="{1}umber of {0}".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"momentum_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=None,ylow=None,yhigh=None,useTrueEdges=True)
+          myPainter.drawOverlaidHistos([h_energy],data=None,signal_list=None,histos_labels=["Geant4 {0}".format(particle_short)],data_label="",xlabel="Energy [MeV]",ylabel="{1}umber of {0}".format(particle_full,("Relative n" if normalisation else "N")),plotname=plotdir+"energy_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=None,ylow=None,yhigh=None,useTrueEdges=True)
+
+          # Plot for visual fun
+          myPainter.draw2DHist(momentum_2d,plotdir+"momentum_xy_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,"px [MeV]",-30,30,"py [MeV]",-30,30,particle_full,logz=True)
+          myPainter.draw2DHist(position_2d,plotdir+"position_xy_{0}_{1}microns{2}".format(particle,thickness,extratag)+tag,"x [mm]",-1000,1000,"y [mm]",-1000,1000,particle_full,logz=True)
+
+    # Make stacks of output particles within thickness. Only if doing all particles
+    if (not useOnly) and drawAll :
+      to_stack = [plot_dict["polar_scattering_norm_neutron"],plot_dict["polar_scattering_norm_eplus"],plot_dict["polar_scattering_norm_gamma"],plot_dict["polar_scattering_norm_eminus"]]
+      myPainter.drawStackedHistos(to_stack,data=None,signal_list=None,stack_labels=["Neutrons","Positrons","Photons","Electrons"],data_label="",xlabel="Polar angle [rad]",ylabel="Norm. particles per rad^{2}",plotname=plotdir+"stacked_particles_norm_{0}microns".format(thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1,ylow=None,yhigh=None)
+
+      to_stack = [plot_dict["polar_scattering_neutron"],plot_dict["polar_scattering_eplus"],plot_dict["polar_scattering_gamma"],plot_dict["polar_scattering_eminus"]]
+      myPainter.drawStackedHistos(to_stack,data=None,signal_list=None,stack_labels=["Neutrons","Positrons","Photons","Electrons"],data_label="",xlabel="Polar angle [rad]",ylabel="Total particles",plotname=plotdir+"stacked_particles_{0}microns".format(thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=1,ylow=None,yhigh=None)
+
+      to_stack = [plot_dict["polar_scattering_deg_norm_neutron"],plot_dict["polar_scattering_deg_norm_eplus"],plot_dict["polar_scattering_deg_norm_gamma"],plot_dict["polar_scattering_deg_norm_eminus"]]
+      myPainter.drawStackedHistos(to_stack,data=None,signal_list=None,stack_labels=["Neutrons","Positrons","Photons","Electrons"],data_label="",xlabel="Polar angle [deg]",ylabel="Norm. particles per deg^{2}",plotname=plotdir+"stacked_particles_deg_norm_{0}microns".format(thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xlow=0,xhigh=90,ylow=None,yhigh=None)
+
+      to_stack = [plot_dict["polar_scattering_deg_neutron"],plot_dict["polar_scattering_deg_eplus"],plot_dict["polar_scattering_deg_gamma"],plot_dict["polar_scattering_deg_eminus"]]
+      littleDrawStack(to_stack,data=None,signal_list=None,stack_labels=["Neutrons","Positrons","Photons","Electrons"],data_label="",xlabel="Polar angle [deg]",ylabel="Total particles",plotname=plotdir+"stacked_particles_deg_{0}microns".format(thickness)+tag,doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=[],xl=0,xh=90,ylow=None,yhigh=None)
+
+    # Close input file
+    infile.Close()
+
+# Plots comparing scattering RMS versus energy
+import math
+def get_rms(histo) :
+  numerator = 0
+  denominator = 0
+  for i in range(1,histo.GetNbinsX()+1) :
+    numerator += histo.GetBinContent(i)*(histo.GetBinCenter(i)**2)
+    denominator += histo.GetBinContent(i)
+  rms = math.sqrt(numerator/denominator)
+  return rms
+
+list_histos = []
+keys_histos = []
+for energy in energies :
+  keys_histos.append("{0} MeV".format(energy))
+  print(savehists[1][energy]["eminus"].keys())
+  list_histos.append(savehists[1][energy]["eminus"]["polar_scattering_norm_eminus"])
+# First plot: overlay all of them.
+print(list_histos)
+myPainter.drawOverlaidHistos(list_histos,data=None,signal_list=None,histos_labels=keys_histos,data_label="",xlabel="Polar angle [rad]",ylabel="Norm particles per rad^{2}",plotname="plots/scattering_at_diff_energies",doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=["Scattering, 1 micron foil"],xlow=0,xhigh=1,ylow=None,yhigh=3e10)
+rms_graph = ROOT.TGraph()
+for e, hist in zip(energies,list_histos) :
+  rms = get_rms(hist)
+  rms_graph.SetPoint(rms_graph.GetN(),e,rms)
+myPainter.drawOverlaidTGraphs([rms_graph],["RMS of norm. polar angle"],xlabel="Beam energy [MeV]",ylabel="RMS of polar angle [rad]",plotname="plots/rms_versus_energy",logx=False,logy=False,xmin=None,xmax=None,ymin=None,ymax=None,addHorizontalLines=[],extraLines=[])
 
 # Save histograms that I created here, so I can look at them further if desired
 outfile = ROOT.TFile.Open("plots_detailedstudy.root","RECREATE")
 outfile.cd()
 for thickness in savehists.keys() :
-  for name,hist in savehists[thickness].items() :
-    hist.Write()
+  for energy in savehists[thickness].keys() :
+    for particle in savehists[thickness][energy].keys() :
+      for name,hist in savehists[thickness][energy][particle].items() :
+        hist.Write()
 outfile.Close()
