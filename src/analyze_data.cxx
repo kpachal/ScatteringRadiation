@@ -314,16 +314,34 @@ int main(int argc, char* argv[]) {
                     angles.push_back(angle);
                 }
                 return angles;}, {name})
-        .Define(("n_angles_" + name).c_str(),
-            [](RVec<double> angles)
-            { return angles.size(); }, {("angle_polar_" + name).c_str()})
-        .Define(("sum2_angles_" + name).c_str(),
-            [](RVec<double> angles)
-            {   double sum2_angles_deg = 0;
-                for (auto a : angles) {
-                    sum2_angles_deg += pow(a,2.0);
+        .Define(("angle_x_"+name).c_str(),
+            [](RVec<particle> particles)
+            {   RVec<double> angles;
+                // Unit vector we want direction relative to
+                TVector3 beamDir(0,0,1);
+                for (auto p : particles) {
+                    auto px = p.four_vector.Px();
+                    auto pz = p.four_vector.Pz();
+                    TVector3 projection(px,0,pz);
+                    double angle = projection.Angle(beamDir);
+                    if (px < 0) angle = -1 * angle;
+                    angles.push_back(angle);
                 }
-            return sum2_angles_deg;}, {("angle_polar_" + name).c_str()})
+                return angles;}, {name})
+        .Define(("angle_y_"+name).c_str(),
+            [](RVec<particle> particles)
+            {   RVec<double> angles;
+                // Unit vector we want direction relative to
+                TVector3 beamDir(0,0,1);
+                for (auto p : particles) {
+                    auto py = p.four_vector.Py();
+                    auto pz = p.four_vector.Pz();
+                    TVector3 projection(0,py,pz);
+                    double angle = projection.Angle(beamDir);
+                    if (py < 0) angle = -1 * angle;
+                    angles.push_back(angle);
+                }
+                return angles;}, {name})
         // Individual momentum components
         .Define(("momentum_x_" + name).c_str(),
             [](RVec<particle> particles)
@@ -356,32 +374,6 @@ int main(int argc, char* argv[]) {
             {   RVec<double> zpos;
                 for (auto p : particles) zpos.push_back(p.position_vector.Z());
                 return zpos;}, {name})
-        // Directional angles to check gaussianity: x and y separately
-        .Define(("angle_x_"+name).c_str(),
-            [](RVec<particle> particles)
-            {   RVec<double> angles;
-                // Unit vector we want direction relative to
-                TVector2 beamCenter(0,1);
-                for (auto p : particles) {
-                    // Project location into only x and z dimensions
-                    TVector2 particleLocation(p.position_vector.X(),p.position_vector.Z());                    
-                    double angle = beamCenter.DeltaPhi(particleLocation);
-                    angles.push_back(angle);
-                }
-                return angles;}, {name})
-        .Define(("angle_y_"+name).c_str(),
-            [](RVec<particle> particles)
-            {   RVec<double> angles;
-                // Unit vector we want direction relative to
-                TVector2
-                 beamCenter(0,1);
-                for (auto p : particles) {
-                    // Project location into only x and z dimensions
-                    TVector2 particleLocation(p.position_vector.Y(),p.position_vector.Z());                    
-                    double angle = beamCenter.DeltaPhi(particleLocation);
-                    angles.push_back(angle);
-                }
-                return angles;}, {name})
         // Angle in degrees
         .Define(("angle_polar_deg_" + name).c_str(),
             [](RVec<particle> particles)
@@ -405,16 +397,6 @@ int main(int argc, char* argv[]) {
                 }
             return sum2_angles_deg;}, {("angle_polar_deg_" + name).c_str()});
 
-        // Calculate RMS of polar angles.
-        auto rms_numerator = frame_withQuantities.Sum<double>(("sum2_angles_"+name).c_str());
-        auto rms_denominator = frame_withQuantities.Sum<unsigned long>(("n_angles_"+name).c_str());
-        auto rms_deg_numerator = frame_withQuantities.Sum<double>(("sum2_angles_deg_"+name).c_str());
-        auto rms_deg_denominator = frame_withQuantities.Sum<unsigned long>(("n_angles_deg_"+name).c_str());
-        RMS_numerator.push_back(rms_numerator);
-        RMS_denominator.push_back(rms_denominator);
-        RMS_deg_numerator.push_back(rms_deg_numerator);
-        RMS_deg_denominator.push_back(rms_deg_denominator);
-
         // Now make histograms from each.
         auto particle_energy = frame_withQuantities.Histo1D({("energy_" + name).c_str(),("energy_" + name).c_str(),300,0,60},("energy_" + name).c_str());
         outputs.push_back(particle_energy);
@@ -428,8 +410,12 @@ int main(int argc, char* argv[]) {
         outputs.push_back(particle_mom_z);
         auto momentum_xy = frame_withQuantities.Histo2D({("momentum_xy_" + name).c_str(),("momentum_xy_" + name).c_str(),1200,-50,50,1200,-50,50},("momentum_x_" + name).c_str(),("momentum_y_" + name).c_str());
         outputs_2D.push_back(momentum_xy);
-        auto particle_angle = frame_withQuantities.Histo1D({("angle_polar_" + name).c_str(),("angle_polar_" + name).c_str(),31400,0,3.14},("angle_polar_" + name).c_str());
-        outputs_to_norm.push_back(particle_angle); // need to keep track of this one for later
+        auto particle_angle = frame_withQuantities.Histo1D({("angle_polar_" + name).c_str(),("angle_polar_" + name).c_str(),314,0,3.14},("angle_polar_" + name).c_str());
+        outputs_to_norm.push_back(particle_angle); 
+        auto particle_x_angle = frame_withQuantities.Histo1D({("angle_x_" + name).c_str(),("angle_x_" + name).c_str(),6280,-3.14,3.14},("angle_x_" + name).c_str());
+        outputs.push_back(particle_x_angle);
+        auto particle_y_angle = frame_withQuantities.Histo1D({("angle_y_" + name).c_str(),("angle_y_" + name).c_str(),6280,-3.14,3.14},("angle_y_" + name).c_str());
+        outputs.push_back(particle_y_angle);
         auto particle_pos_x = frame_withQuantities.Histo1D({("position_x_" + name).c_str(),("position_x_" + name).c_str(),402,-2010,2010},("position_x_" + name).c_str());      
         outputs.push_back(particle_pos_x);
         auto particle_pos_y = frame_withQuantities.Histo1D({("position_y_" + name).c_str(),("position_y_" + name).c_str(),402,-2010,2010},("position_y_" + name).c_str());      
@@ -440,10 +426,6 @@ int main(int argc, char* argv[]) {
         outputs_2D.push_back(position_xy);
         auto particle_angle_polar_deg = frame_withQuantities.Histo1D({("angle_polar_deg_" + name).c_str(),("angle_polar_deg_" + name).c_str(),180,0,180},("angle_polar_deg_" + name).c_str());
         outputs_to_norm.push_back(particle_angle_polar_deg); // need to keep track of this one for later
-        auto particle_angle_x = frame_withQuantities.Histo1D({("angle_x_" + name).c_str(),("angle_x_" + name).c_str(),628,-3.14,3.14},("angle_x_" + name).c_str());
-        outputs.push_back(particle_angle_x); 
-        auto particle_angle_y = frame_withQuantities.Histo1D({("angle_y_" + name).c_str(),("angle_y_" + name).c_str(),628,-3.14,3.14},("angle_y_" + name).c_str());
-        outputs.push_back(particle_angle_y);
         
         // Add some histograms just of particles inside spectrometers.
         auto down_selected = frame_withQuantities.Define(("in_em_" + name).c_str(),("angle_polar_" + name + " > 0.6021 && angle_polar_"+name + "< 0.6545").c_str())
@@ -501,18 +483,6 @@ int main(int argc, char* argv[]) {
         if (thisname.Contains("_deg_")) radians = false;
         TH1D polar_scattering_norm = normalise_solid_angle(&hist.GetValue(),radians);
         polar_scattering_norm.Write();
-    }
-
-    // Write RMS values
-    for (int i=0; i<RMS_numerator.size(); i++) {
-        double rms = sqrt(RMS_numerator.at(i).GetValue()/RMS_denominator.at(i).GetValue());
-        double rms_deg = sqrt(RMS_deg_numerator.at(i).GetValue()/RMS_deg_denominator.at(i).GetValue());
-        TVectorD v_rms(1);
-        v_rms[0] = rms;
-        v_rms.Write(Form("RMS_polar_angle_%s",particle_names.at(i).c_str()));
-        TVectorD v_rms_deg(1);
-        v_rms_deg[0] = rms_deg;
-        v_rms_deg.Write(Form("RMS_polar_angle_deg_%s",particle_names.at(i).c_str()));
     }
 
     output_file->Close();

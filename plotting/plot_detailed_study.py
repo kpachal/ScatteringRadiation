@@ -64,22 +64,6 @@ def littleDrawStack(stack_list,data=None,signal_list=None,stack_labels=[],data_l
     c.SaveAs(plotname+".eps")
     c.SaveAs(plotname+".pdf")
 
-def compute_rms_1D(hist) :
-    sum2 = 0
-    for bin in range(hist.GetNbinsX()+1) :
-        sum2 += hist.GetBinContent(bin) * hist.GetBinCenter(bin)**2
-    RMS = math.sqrt(sum2/hist.Integral())
-    return RMS
-
-def compute_rms_2D(hist) :
-    sum2 = 0
-    for binx in range(hist.GetNbinsX()+1) :
-        for biny in range(hist.GetNbinsY()+1) :
-          radius2 = hist.GetXaxis().GetBinCenter(binx)**2 + hist.GetYaxis().GetBinCenter(biny)**2
-          sum2 += hist.GetBinContent(binx,biny) * radius2
-    RMS = math.sqrt(sum2/hist.Integral())
-    return RMS
-
 savehists = {}
 particle_dict = {"eminus" : {"full" : "electrons", "short" : "e-"},
                  "eplus" : {"full" : "positrons", "short" : "e+"},
@@ -168,7 +152,7 @@ for thickness in thicknesses :
               break
         polar_scattering_norm = infile.Get("angle_polar_{0}_norm".format(particle))
         polar_scattering_norm.SetDirectory(0)
-        #polar_scattering_norm.Rebin(4)
+        polar_scattering_norm.Rebin(10)
         if normalisation and polar_scattering_norm.GetMaximum() > 0: 
           polar_scattering_norm.Scale(1.0/polar_scattering_norm.GetMaximum())
         polar_scattering_norm.SetName(polar_scattering_norm.GetName()+"_{0}micron".format(thickness))
@@ -192,6 +176,22 @@ for thickness in thicknesses :
         if normalisation and polar_scattering_deg_norm.GetMaximum() > 0 : 
           polar_scattering_deg_norm.Scale(1.0/polar_scattering_deg_norm.GetMaximum())
         polar_scattering_deg_norm.SetName(polar_scattering_deg_norm.GetName()+"_{0}micron".format(thickness))
+
+        # Angles for accelerator
+        angle_x = infile.Get("angle_x_{0}".format(particle))
+        angle_x.SetDirectory(0)
+        if "eminus" in particle :
+          print(thickness,energy,normalisation,particle,":\t",angle_x.GetRMS())
+        if normalisation and angle_x.GetMaximum() > 0 :
+          angle_x.Scale(1.0/angle_x.GetMaximum())
+        angle_x.SetName(angle_x.GetName()+"_{0}micron".format(thickness))
+        angle_y = infile.Get("angle_y_{0}".format(particle))
+        angle_y.SetDirectory(0)
+        if normalisation and angle_y.GetMaximum() > 0 :
+          angle_y.Scale(1.0/angle_y.GetMaximum())
+        angle_y.SetName(angle_y.GetName()+"_{0}micron".format(thickness))
+        plot_dict["angle_x_{0}".format(particle)] = angle_x
+        plot_dict["angle_y_{0}".format(particle)] = angle_y
 
         # Rebin neutrons: low stats,
         # but only after saving raw version so plots stack better
@@ -296,31 +296,43 @@ for thickness in thicknesses :
     # Close input file
     infile.Close()
 
-# Plots comparing scattering RMS versus energy
-import math
-def get_rms(histo) :
-  numerator = 0
-  denominator = 0
-  for i in range(1,histo.GetNbinsX()+1) :
-    numerator += histo.GetBinContent(i)*(histo.GetBinCenter(i)**2)
-    denominator += histo.GetBinContent(i)
-  rms = math.sqrt(numerator/denominator)
-  return rms
-
+# Plot and table comparing scattering RMS versus energy.
+# Must do table first, since range adjustment in plotting alters RMS.
 list_histos = []
 keys_histos = []
+rms_x_graph = ROOT.TGraph()
+rms_y_graph = ROOT.TGraph()
+print("Energy\tx angle RMS\ty angle RMS")
 for energy in energies :
   keys_histos.append("{0} MeV".format(energy))
-  print(savehists[1][energy]["eminus"].keys())
-  list_histos.append(savehists[1][energy]["eminus"]["polar_scattering_norm_eminus"])
+  hist_x = savehists[1][energy]["eminus"]["angle_x_eminus"]
+  rms_x = hist_x.GetRMS()
+  hist_y = savehists[1][energy]["eminus"]["angle_y_eminus"]
+  rms_y = hist_y.GetRMS()
+  rms_x_graph.SetPoint(rms_x_graph.GetN(),energy,rms_x)
+  rms_y_graph.SetPoint(rms_y_graph.GetN(),energy,rms_y)
+  print(energy, "\t",round(rms_x,5),"\t",round(rms_y,5))
+  # Calculated RMS: safe to rebin for plotting.
+  # Normalise everything so we can compare shapes:
+  # but normalise to 2 for those with positive and negative.
+  hist_x.Rebin(10)
+  hist_x.Scale(2.0/hist_x.Integral())
+  hist_y.Rebin(10)
+  hist_y.Scale(2.0/hist_y.Integral())
+  # Also grab polar angle and toss it in here
+  hist_polar = savehists[1][energy]["eminus"]["polar_scattering_eminus"]
+  #hist_polar.Rebin(10)
+  hist_polar.Scale(1.0/hist_polar.Integral())
+  list_histos.append([hist_x,hist_y,hist_polar])
+
 # First plot: overlay all of them.
-print(list_histos)
-myPainter.drawOverlaidHistos(list_histos,data=None,signal_list=None,histos_labels=keys_histos,data_label="",xlabel="Polar angle [rad]",ylabel="Norm particles per rad^{2}",plotname="plots/scattering_at_diff_energies",doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=["Scattering, 1 micron foil"],xlow=0,xhigh=1,ylow=None,yhigh=3e10)
-rms_graph = ROOT.TGraph()
-for e, hist in zip(energies,list_histos) :
-  rms = get_rms(hist)
-  rms_graph.SetPoint(rms_graph.GetN(),e,rms)
-myPainter.drawOverlaidTGraphs([rms_graph],["RMS of norm. polar angle"],xlabel="Beam energy [MeV]",ylabel="RMS of polar angle [rad]",plotname="plots/rms_versus_energy",logx=False,logy=False,xmin=None,xmax=None,ymin=None,ymax=None,addHorizontalLines=[],extraLines=[])
+myPainter.drawOverlaidHistos([i[0] for i in list_histos],data=None,signal_list=None,histos_labels=keys_histos,data_label="",xlabel="Polar angle [rad]",ylabel="Norm particles per rad^{2}",plotname="plots/scattering_x_vs_energies",doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=["Scattering angle in x","1 micron foil"],xlow=-1,xhigh=1.0,ylow=None,yhigh=3e10,legendLeft=True)
+myPainter.drawOverlaidHistos([i[1] for i in list_histos],data=None,signal_list=None,histos_labels=keys_histos,data_label="",xlabel="Polar angle [rad]",ylabel="Norm particles per rad^{2}",plotname="plots/scattering_y_vs_energies",doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=["Scattering angle in y","1 micron foil"],xlow=-1,xhigh=1,ylow=None,yhigh=3e10,legendLeft=True)  
+# Second plot: computed RMS values
+myPainter.drawOverlaidTGraphs([rms_x_graph,rms_y_graph],["x angle","y angle"],xlabel="Beam energy [MeV]",ylabel="RMS [rad]",plotname="plots/rms_versus_energy",logx=False,logy=False,xmin=None,xmax=None,ymin=None,ymax=None,addHorizontalLines=[],extraLines=[])
+# Third plot: rebinned comparison of RMS projected vs polar for everything
+for energy, hist_trio in zip(energies,list_histos) :
+  myPainter.drawOverlaidHistos(hist_trio,data=None,signal_list=None,histos_labels=["#theta x","#theta y", "Polar angle"],data_label="",xlabel="Angle [rad]",ylabel="Particles",plotname="plots/rms_definitions_{0}MeV".format(round(energy)),doRatio=False,ratioName="",doBkgErr=False,logx=False,logy=True,nLegendColumns=1,extraLines=["Scattering angle","1 micron foil"],xlow=0,xhigh=1.0,ylow=None,yhigh=3e10,legendLeft=False)
 
 # Save histograms that I created here, so I can look at them further if desired
 outfile = ROOT.TFile.Open("plots_detailedstudy.root","RECREATE")
