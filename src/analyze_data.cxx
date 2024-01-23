@@ -328,6 +328,20 @@ int main(int argc, char* argv[]) {
                     angles.push_back(angle);
                 }
                 return angles;}, {name})
+        .Define(("angle_x_frompos_"+name).c_str(),
+            [](RVec<particle> particles)
+            {   RVec<double> angles;
+                // Unit vector we want direction relative to
+                TVector3 beamDir(0,0,1);
+                for (auto p : particles) {
+                    auto px = p.position_vector.Px();
+                    auto pz = p.position_vector.Pz();
+                    TVector3 projection(px,0,pz);
+                    double angle = projection.Angle(beamDir);
+                    if (px < 0) angle = -1 * angle;
+                    angles.push_back(angle);
+                }
+                return angles;}, {name})                
         .Define(("angle_y_"+name).c_str(),
             [](RVec<particle> particles)
             {   RVec<double> angles;
@@ -342,6 +356,20 @@ int main(int argc, char* argv[]) {
                     angles.push_back(angle);
                 }
                 return angles;}, {name})
+        .Define(("angle_y_frompos_"+name).c_str(),
+            [](RVec<particle> particles)
+            {   RVec<double> angles;
+                // Unit vector we want direction relative to
+                TVector3 beamDir(0,0,1);
+                for (auto p : particles) {
+                    auto py = p.position_vector.Py();
+                    auto pz = p.position_vector.Pz();
+                    TVector3 projection(0,py,pz);
+                    double angle = projection.Angle(beamDir);
+                    if (py < 0) angle = -1 * angle;
+                    angles.push_back(angle);
+                }
+                return angles;}, {name})                
         // Individual momentum components
         .Define(("momentum_x_" + name).c_str(),
             [](RVec<particle> particles)
@@ -414,8 +442,12 @@ int main(int argc, char* argv[]) {
         outputs_to_norm.push_back(particle_angle); 
         auto particle_x_angle = frame_withQuantities.Histo1D({("angle_x_" + name).c_str(),("angle_x_" + name).c_str(),6280,-3.14,3.14},("angle_x_" + name).c_str());
         outputs.push_back(particle_x_angle);
+        auto particle_x_angle_frompos = frame_withQuantities.Histo1D({("angle_x_frompos_" + name).c_str(),("angle_x_frompos_" + name).c_str(),6280,-3.14,3.14},("angle_x_frompos_" + name).c_str());
+        outputs.push_back(particle_x_angle_frompos);
         auto particle_y_angle = frame_withQuantities.Histo1D({("angle_y_" + name).c_str(),("angle_y_" + name).c_str(),6280,-3.14,3.14},("angle_y_" + name).c_str());
         outputs.push_back(particle_y_angle);
+        auto particle_y_angle_frompos = frame_withQuantities.Histo1D({("angle_y_frompos_" + name).c_str(),("angle_y_frompos_" + name).c_str(),6280,-3.14,3.14},("angle_y_frompos_" + name).c_str());
+        outputs.push_back(particle_y_angle_frompos);        
         auto particle_pos_x = frame_withQuantities.Histo1D({("position_x_" + name).c_str(),("position_x_" + name).c_str(),402,-2010,2010},("position_x_" + name).c_str());      
         outputs.push_back(particle_pos_x);
         auto particle_pos_y = frame_withQuantities.Histo1D({("position_y_" + name).c_str(),("position_y_" + name).c_str(),402,-2010,2010},("position_y_" + name).c_str());      
