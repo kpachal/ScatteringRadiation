@@ -137,7 +137,7 @@ double MoliereDCS::estimate_width() {
     double radiation_length_Ta = 0.4094*10000.; // Initial value in cm; converting to microns
     double x_over_x0 = m_foilThickness/radiation_length_Ta;
 
-    double width = 13.6/m_p_beta_c * sqrt(x_over_x0);// * (1 + 0.038*log(x_over_x0));
+    double width = 13.6/m_p_beta_c * sqrt(x_over_x0) * (1 + 0.038*log(x_over_x0));
 
     return width;
 }

@@ -31,13 +31,10 @@ int main(int argc, char* argv[]) {
    std::vector<std::pair<double,double> > est_widths;
    std::vector<double> map_thickness;
    std::vector<double> map_energy;
+   std::vector<bool> map_isdegrees;
    for (auto thickness : thicknesses) {
         for (auto energy : energies) {
             for (bool isDegrees : {true, false}) {
-
-                // Basically for tracking into TVectors later
-                map_thickness.push_back(thickness);
-                map_energy.push_back(energy);
 
                 // Moliere multiple scattering cross sections
                 // Electron beam of specified energy in MeV on foil of given thickness
@@ -90,6 +87,9 @@ int main(int argc, char* argv[]) {
                 double maxval = func_MDCS(&testpoint,&normpar);
                 double width_obs = MDCS->GetX(maxval/2.0, 0, 0.1);
 
+                // Basically for tracking into TVectors later
+                map_thickness.push_back(thickness);
+                map_energy.push_back(energy);
                 est_widths.push_back(std::make_pair(width,width_obs));
 
             }
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
    TVectorD widths_fromTF1(integrals.size());
    for (unsigned int index=0; index<est_widths.size(); index++) {
        std::cout << "Width " << map_thickness.at(index) << ", energy " << map_energy.at(index) << ":" << std::endl;
-       std::cout << "From TDR forumla: " << est_widths.at(index).first << std::endl;
+       std::cout << "From TDR formula: " << est_widths.at(index).first << std::endl;
        std::cout << "From TF1 itself: " << est_widths.at(index).second << std::endl;
        widths_est[index] = est_widths.at(index).first;
        widths_fromTF1[index] = est_widths.at(index).second;
